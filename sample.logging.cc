@@ -43,7 +43,7 @@ void my_custom_logger( bool open, bool feed, bool close, const std::string &line
     }
 }
 
-int main( int argc, char **argv )
+int main( int argc, const char **argv )
 {
     std::cout << "next lines are going to be redirected to a 'log.html' file ..." << std::endl;
 

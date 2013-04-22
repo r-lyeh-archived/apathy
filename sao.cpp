@@ -159,7 +159,9 @@ namespace
     std::map< std::ostream *, captured_ostream > loggers;
 }
 
-namespace stream // sao
+namespace sao
+{
+namespace stream
 {
     void attach( std::ostream &_os, void (*custom_stream_callback)( bool open, bool feed, bool close, const std::string &line ) )
     {
@@ -228,5 +230,6 @@ namespace stream // sao
 
         return _.insert( proc );
     }
-}
+} // stream::
+} // sao::
 

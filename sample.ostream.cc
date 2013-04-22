@@ -1,11 +1,10 @@
-#include <iostream>
-#include <string>
-
 #ifdef _WIN32
 #   include <Windows.h>
 #   pragma comment(lib,"user32.lib")
 #endif
 
+#include <iostream>
+#include <string>
 #include "sao.hpp"
 using namespace sao;
 
@@ -40,7 +39,7 @@ namespace
 
 std::ostream &error = stream::make(default_error_callback);
 
-int main( int argc, char **argv )
+int main( int argc, const char **argv )
 {
     error << "this is an error sample" << std::endl;
     error << "this is another error sample; errcode(" << (-1) << ")" << std::endl;
