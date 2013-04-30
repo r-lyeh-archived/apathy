@@ -75,6 +75,17 @@ namespace sao
             sbb()
             {}
 
+            sbb( const sbb &other ) {
+                operator=(other);
+            }
+
+            sbb &operator=( const sbb &other ) {
+                if( this != &other ) {
+                    cb = other.cb;
+                }
+                return *this;
+            }
+
             sbb( void (*cbb)( bool, bool, bool, const std::string & ) )
             {
                 insert( cbb );
@@ -215,7 +226,8 @@ namespace stream
 
             ~container()
             {
-                for( auto it = list.begin(), end = list.end(); it != end; ++it )
+                for( std::vector< std::ostream * >::const_iterator 
+                        it = list.begin(), end = list.end(); it != end; ++it )
                     delete *it;
             }
 
