@@ -22,7 +22,7 @@ Public API
 
 Sample
 ------
-```
+```c++
 @todoc
 ```
 

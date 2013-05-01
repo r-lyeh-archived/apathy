@@ -122,7 +122,7 @@ namespace sao
 
             virtual std::streamsize xsputn( const char *c_str, std::streamsize n )
             {
-                log( std::string( c_str, n ) );
+                log( std::string( c_str, (unsigned)n ) );
 
                 return n;
             }
@@ -226,7 +226,7 @@ namespace stream
 
             ~container()
             {
-                for( std::vector< std::ostream * >::const_iterator 
+                for( std::vector< std::ostream * >::const_iterator
                         it = list.begin(), end = list.end(); it != end; ++it )
                     delete *it;
             }
