@@ -15,3 +15,5 @@ namespace sao
         std::ostream &make( void (*custom_stream_callback)( bool open, bool feed, bool close, const std::string &line ) );
     }
 }
+
+#include "file.hpp"
