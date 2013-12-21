@@ -414,6 +414,10 @@ namespace sao
         return !is_dir();
     }
 
+    bool file::has_data() const {
+        return exist() && is_file() && size() > 0;
+    }
+
     time_t file::date() const {
         struct stat fileInfo;
         if( stat( pathfile.c_str(), &fileInfo ) < 0 )

@@ -14,18 +14,12 @@ void my_custom_logger( bool open, bool feed, bool close, const std::string &line
     {
         fp = std::fopen("log.html", "wb");
 
-        const char *jscript =
-        "<script>format = function() {"
-        "document.body.innerHTML = '<pre>' + document.body.innerHTML.replace(/>/g,'&gt;').replace(/</g,'&lt;').replace(/\"/g,'&quot;') + '</pre>';"
-        "}</script>";
-
-        std::fprintf( fp, "%s", "<!-- generated file -->\n" );
-        std::fprintf( fp, "<html><head>%s</head><body onload='replace_all()'>\n<pre>", jscript );
+        std::fprintf( fp, "%s", "<!-- generated file -->\n<body><xmp>\n" );
     }
     else
     if( close )
     {
-        std::fprintf( fp, "%s", ( cache + "\n</pre></body></html>\n<!-- closing log file... -->\n" ).c_str() );
+        std::fprintf( fp, "%s", ( cache + "\n</xmp></body></html>\n<!-- closing log file... -->\n" ).c_str() );
         std::fclose( fp );
 
         cache = std::string();

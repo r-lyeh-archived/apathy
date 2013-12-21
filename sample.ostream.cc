@@ -25,7 +25,7 @@ namespace
         if( feed )
         {
 #ifdef _WIN32
-            MessageBoxA( 0, cache.c_str(), 0, MB_ICONERROR );
+            MessageBoxA( 0, cache.c_str(), "custom error stream", MB_ICONERROR );
 #endif
             std::cerr << cache << std::endl;
             cache = std::string();

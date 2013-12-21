@@ -95,6 +95,7 @@ namespace sao
 
         bool is_dir() const; // may return false due to permissions (check errno)
         bool is_file() const; // may return true due to permissions (check errno)
+        bool has_data() const;
 
         std::time_t date() const;
         std::string timestamp( const char *format = "%Y-%m-%d %H:%M:%S" ) const; // defaults to mysql date format
