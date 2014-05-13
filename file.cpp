@@ -127,7 +127,12 @@ namespace {
         } };
         return local::match( pattern.c_str(), text.c_str() );
     }
-    bool recurse( sao::files &self, const std::string &sDir, const std::vector<std::string> &masks, bool recursive ) {
+    bool recurse( sao::folder &self, const std::string &sDir, const std::vector<std::string> &masks, bool recursive ) {
+        sao::file path( sDir );
+        if( path.is_file() ) {
+            self.insert( path );
+            return false;
+        }
         $win32(
             WIN32_FIND_DATAA fdFile;
             std::string sPath = sDir + "\\*";
@@ -550,15 +555,15 @@ namespace sao
     }
 
 
-    files::files()
+    folder::folder()
     {}
 
-    void files::include( const std::string &path, const std::vector<std::string> &masks, bool scan_subdirs ) { // addition: beware duplicates (set!)
+    void folder::include( const std::string &path, const std::vector<std::string> &masks, bool scan_subdirs ) { // addition: beware duplicates (set!)
         recurse( *this, path, masks, scan_subdirs );
     }
 
-    void files::exclude( const std::string &path, const std::vector<std::string> &masks, bool scan_subdirs ) { // subtraction: beware duplicates (set!)
-        files target, to_remove;
+    void folder::exclude( const std::string &path, const std::vector<std::string> &masks, bool scan_subdirs ) { // subtraction: beware duplicates (set!)
+        folder target, to_remove;
         recurse( to_remove, path, masks, scan_subdirs );
         for( const_iterator it = this->begin(); it != this->end(); ++it )
             if( to_remove.find( file( it->name() ) ) == to_remove.end() )
@@ -566,14 +571,14 @@ namespace sao
         std::swap( *this, target );
     }
 
-    files files::sort( file::sorting_type sorting ) const {
-        files result;
+    folder folder::sort( file::sorting_type sorting ) const {
+        folder result;
         for( const_iterator it = this->begin(); it != this->end(); ++it )
             result.insert( file( it->name(), sorting ) );
         return result;
     }
 
-    std::string files::str( const char *format1 ) const {
+    std::string folder::str( const char *format1 ) const {
         std::string out;
         for( const_iterator it = this->begin(); it != this->end(); ++it )
             out += replace( format1, "\1", it->name() );

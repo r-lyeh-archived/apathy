@@ -131,16 +131,16 @@ namespace sao
         mutable std::map< std::string /*property*/, std::string /*value*/ > metadata;
     };
 
-    class files : public std::set< file >
+    class folder : public std::set< file >
     {
     public:
 
-        files();
+        folder();
 
-        void include( const std::string &path, const std::vector<std::string> &masks, bool scan_subdirs );
-        void exclude( const std::string &path, const std::vector<std::string> &masks, bool scan_subdirs );
+        void include( const std::string &path, const std::vector<std::string> &masks = {"*"}, bool scan_subdirs = true );
+        void exclude( const std::string &path, const std::vector<std::string> &masks = {"*"}, bool scan_subdirs = true );
 
-        files sort( file::sorting_type sorting ) const;
+        folder sort( file::sorting_type sorting ) const;
 
         std::string str( const char *format1 = "\1\n" ) const;
     };
