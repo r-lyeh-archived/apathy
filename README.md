@@ -6,12 +6,13 @@ Sao is a lightweight IO C++11 library with no dependencies. Unlike Io, Sao orbit
 Features
 --------
 - Stream api: @todoc
-- Network logger: @todoc
-- Network files: @todoc
-- Network archives: @todoc
-- Network strings: @todoc
-- Network types: @todoc
-- Network patches: @todoc
+- File api: @todoc
+- Folder api: @todoc
+
+Todo
+----
+- Path manipulation: pwd, split, .., absolute, relative, home, push_back, pop_front, sanitize
+- Mmap
 
 Public API
 ----------

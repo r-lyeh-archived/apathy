@@ -3,14 +3,12 @@
 
 #include "sao.hpp"
 
-int main( int argc, char **argv )
-{
+int main() {
     std::string tmpname = sao::file().name();
     assert( tmpname.size() > 0 );
 
     std::cout << sao::file("test.c").ext() << std::endl;
     std::cout << sao::file("test.exe").ext() << std::endl;
-    std::cout << sao::file(argv[0]).ext() << std::endl;
 
     assert( sao::file(tmpname).overwrite(tmpname) );
     assert( sao::file(tmpname).exist() );
@@ -34,6 +32,4 @@ int main( int argc, char **argv )
     file.meta("author") = "@rlyeh";
 
     std::cout << "All ok." << std::endl;
-
-    return 0;
 }
