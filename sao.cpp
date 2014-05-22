@@ -35,12 +35,14 @@
 #   include <ctime>
 #   include <sys/stat.h>
 #   include <sys/utime.h>
+#   include <direct.h>
 #   define $win32(...) __VA_ARGS__
 #   define $welse(...)
 #else
 #   include <sys/time.h>
 #   include <sys/stat.h>
 #   include <utime.h>
+#   include <dirent.h>
 #   define $win32(...)
 #   define $welse(...) __VA_ARGS__
 #endif
@@ -344,7 +346,7 @@ namespace {
         }
         $win32(
             WIN32_FIND_DATAA fdFile;
-            std::string sPath = sDir + "\\*";
+            std::string sPath = sDir + "\\*"; //sDir;
             HANDLE hFind = FindFirstFileA(sPath.c_str(), &fdFile);
 
             if( hFind == INVALID_HANDLE_VALUE )
@@ -358,7 +360,7 @@ namespace {
                     continue;
 
                 // Rebuild path
-                sPath = std::string(sDir) + "\\" + std::string(fdFile.cFileName);
+                sPath = std::string(sDir) + "\\" + std::string(fdFile.cFileName); //= std::string(fdFile.cFileName);
 
                 // Scan recursively if needed
                 if( !(fdFile.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ) {
@@ -406,6 +408,28 @@ namespace {
             }
             return true;
         )
+    }
+    bool rmrf( const std::string &path, bool subdirs ) {
+        /*
+        if( path.empty() ) return true;
+        if( path.back() != '/' ) path += "/";
++
+        for( DIR *pdir = opendir( path.c_str() ); 0 != pdir; closedir( pdir ) ) {
+            for( struct dirent *pent = 0; pent = readdir( pdir ); ) {
+                std::string name = pent->name;
+                if( name == "." || name == ".." ) continue;
+                name = path + name;
+                if( sao::file( name ).is_file() ) {
+                    sao::file( name ).remove();
+                } else {
+                    if( subdirs ) {
+                        rmrf( name, subdirs );
+                    }
+                }
+            }
+        }
+        */
+        return 0 == $win32( _rmdir ) $welse( rmdir ) ( path.c_str() ) ? true : false;
     }
 }
 
@@ -594,8 +618,15 @@ namespace sao
         for( int i = 0; i < 512; ++i ) {
             if( !exist() )
                 return true;
-            if( !std::remove( pathfile.c_str() ) )
-                return true;
+            if( is_file() ) {
+                if( !std::remove( pathfile.c_str() ) ) {
+                    return true;
+                }
+            } else {
+                if( rmrf( pathfile, false ) ) {
+                    return true;
+                }
+            }
             sleep(0.001);
         }
         return false;
