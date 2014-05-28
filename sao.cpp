@@ -39,6 +39,7 @@
 #   define $win32(...) __VA_ARGS__
 #   define $welse(...)
 #else
+#   include <unistd.h>
 #   include <sys/time.h>
 #   include <sys/stat.h>
 #   include <utime.h>
