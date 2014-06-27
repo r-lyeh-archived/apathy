@@ -1,6 +1,7 @@
 /*
- * Sao is a lightweight IO C++11 library with no dependencies.
- * Copyright (c) 2011,2012,2013 Mario 'rlyeh' Rodriguez
+ * Apathy is a lightweight stream/file/path IO C++11 library with no dependencies.
+ * Copyright (c) 2011,2012,2013,2014 Mario 'rlyeh' Rodriguez
+ * Copyright (c) 2013 Dan Lecocq
 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,37 +22,72 @@
  * THE SOFTWARE.
 
  * todo:
- *
  * add stream() << >> chunk()
  * or
  * add subread( from, to ), subwrite( from, to ), chunk(), next(), tell(),
+ *
+ * platform = { roots[], separators[] }
+ * unix = { {"/*"}, {"/"} }
+ * win = { {"?:\*"}, {"\\"} }
+ * http = { {"http://*"}, {'/', '&', '?'} }
+ *
+ * absolute
+ * relative
+ *
+ * up
+ * cwd
+ * cd
+ *
+ * path, stem
+ * file
+ * ext
+ * args
+ * fileext
+ * pathfile
+ * pathfileextargs
+ *
+ * pop,push,at,size()
+ * split,join,range
+ *
+ * sane
+ * os
+ * directory
+ * is_dir, is_file
+ * exists
+ * has_trail
+ * parent
+ * root
+ *
+ * operations
+ * rm
+ * rmr
+ * md
+ * mv
+ * ls
+ * lsr
+ * touch
 
  * - rlyeh ~~ listening to Alice in chains / Nutshell
  */
 
-#if defined(_WIN32) || defined(_WIN64)
-#   include <winsock2.h>
-#   include <windows.h>
-#   include <ctime>
-#   include <sys/stat.h>
-#   include <sys/utime.h>
-#   include <direct.h>
-#   define $win32(...) __VA_ARGS__
-#   define $welse(...)
-#else
-#   include <unistd.h>
-#   include <sys/time.h>
-#   include <sys/stat.h>
-#   include <utime.h>
-#   include <dirent.h>
-#   define $win32(...)
-#   define $welse(...) __VA_ARGS__
-#endif
+#include "apathy.hpp"
 
+/* C includes */
+#include <errno.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+// C++ includes
+#include <algorithm>
 #include <chrono>
+#include <cstdlib>
+#include <cstring>
 #include <deque>
 #include <fstream>
 #include <iostream>
+#include <istream>
+#include <iterator>
 #include <map>
 #include <set>
 #include <sstream>
@@ -59,11 +95,33 @@
 #include <thread>
 #include <vector>
 
-#include "sao.hpp"
+/* OS includes */
+#if defined(_WIN32)
+#   include <winsock2.h>
+#   include <windows.h>
+#   include <ctime>
+#   include <direct.h>
+#   include <io.h>
+#   include <sys/utime.h>
+#   include "dirent.hpp"
+#   define $win32(...) __VA_ARGS__
+#   define $welse(...)
+#   define open _open
+#   define close _close
+#   define mkdir(path_,mode) _mkdir( path(path_).os().c_str() )
+    typedef int mode_t;
+#else
+#   include <dirent.h>
+#   include <sys/time.h>
+#   include <unistd.h>
+#   include <utime.h>
+#   define $win32(...)
+#   define $welse(...) __VA_ARGS__
+#endif
 
 // api
 
-namespace sao
+namespace apathy
 {
     namespace detail
     {
@@ -186,7 +244,7 @@ namespace
     struct captured_ostream
     {
         std::streambuf *copy;
-        sao::detail::sbb sb;
+        apathy::detail::sbb sb;
 
         captured_ostream() : copy(0)
         {}
@@ -195,7 +253,7 @@ namespace
     std::map< std::ostream *, captured_ostream > loggers;
 }
 
-namespace sao
+namespace apathy
 {
 namespace stream
 {
@@ -243,7 +301,7 @@ namespace stream
     {
         static struct container
         {
-            std::map< void (*)( bool open, bool feed, bool close, const std::string &text ), sao::detail::sbb > map;
+            std::map< void (*)( bool open, bool feed, bool close, const std::string &text ), apathy::detail::sbb > map;
             std::vector< std::ostream * > list;
 
             container()
@@ -258,7 +316,7 @@ namespace stream
 
             std::ostream &insert( void (*proc)( bool open, bool feed, bool close, const std::string &text ) )
             {
-                ( map[ proc ] = map[ proc ] ) = sao::detail::sbb(proc);
+                ( map[ proc ] = map[ proc ] ) = apathy::detail::sbb(proc);
 
                 list.push_back( new std::ostream( &map[proc] ) );
                 return *list.back();
@@ -268,7 +326,7 @@ namespace stream
         return _.insert( proc );
     }
 } // stream::
-} // sao::
+} // apathy::
 
 //--------------
 
@@ -339,19 +397,19 @@ namespace {
         } };
         return local::match( pattern.c_str(), text.c_str() );
     }
-    bool recurse( sao::folder &self, const std::string &sDir, const std::vector<std::string> &masks, bool recursive ) {
-        sao::file path( sDir );
+    bool recurse( apathy::folder &self, const std::string &sDir, const std::vector<std::string> &masks, bool recursive ) {
+        apathy::file path( sDir );
         if( path.is_file() ) {
             self.insert( path );
             return false;
         }
         $win32(
             WIN32_FIND_DATAA fdFile;
-            std::string sPath = sDir + "\\*"; //sDir;
-            HANDLE hFind = FindFirstFileA(sPath.c_str(), &fdFile);
+            std::string spath = sDir + "\\*"; //sDir;
+            HANDLE hFind = FindFirstFileA(spath.c_str(), &fdFile);
 
             if( hFind == INVALID_HANDLE_VALUE )
-                return "Path not found", false;
+                return "path not found", false;
 
             do {
                 // Ignore . and .. folders
@@ -361,13 +419,13 @@ namespace {
                     continue;
 
                 // Rebuild path
-                sPath = std::string(sDir) + "\\" + std::string(fdFile.cFileName); //= std::string(fdFile.cFileName);
+                spath = std::string(sDir) + "\\" + std::string(fdFile.cFileName); //= std::string(fdFile.cFileName);
 
                 // Scan recursively if needed
                 if( !(fdFile.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ) {
                     for( auto &mask : masks ) {
-                        if( matches(sPath, mask) ) {
-                            self.insert( sao::file( sPath ) );
+                        if( matches(spath, mask) ) {
+                            self.insert( apathy::file( spath ) );
                             break;
                         }
                     }
@@ -375,13 +433,13 @@ namespace {
                 else {
                     if( !recursive ) {
                         for( auto &mask : masks )
-                            if( matches(sPath, mask) ) {
-                                self.insert( sao::file( sPath ) );
+                            if( matches(spath, mask) ) {
+                                self.insert( apathy::file( spath ) );
                                 break;
                             }
                     }
                     else {
-                        recurse( self, sPath, masks, recursive );
+                        recurse( self, spath, masks, recursive );
                     }
                 }
             }
@@ -402,7 +460,7 @@ namespace {
                 }
                 auto split = tokenize( out, "\n\r" );
                 for( auto &found : split ) {
-                    sao::file entry( found );
+                    apathy::file entry( found );
                     if( entry.exist() )
                         self.insert( entry );
                 }
@@ -420,8 +478,8 @@ namespace {
                 std::string name = pent->name;
                 if( name == "." || name == ".." ) continue;
                 name = path + name;
-                if( sao::file( name ).is_file() ) {
-                    sao::file( name ).remove();
+                if( apathy::file( name ).is_file() ) {
+                    apathy::file( name ).remove();
                 } else {
                     if( subdirs ) {
                         rmrf( name, subdirs );
@@ -434,77 +492,11 @@ namespace {
     }
 }
 
-namespace sao
+namespace apathy
 {
-    path::path() : std::string(), subdirs(false)
-    {}
-
-    path::path( const std::string &os_path, bool include_subdirs ) : std::string(os_to_host(os_path)), subdirs(include_subdirs)
-    {}
-
-    path::path( const std::string &host_extended_path ) : std::string( host_extended_path ), subdirs( host_to_host(host_extended_path).second )
-    {}
-
-    std::string path::to_os() const {
-        return host_to_os( *this ).first;
-    }
-
-    std::string path::to_host() const {
-        return *this;
-    }
-
-    /* /g/Boot/ -> g:\\Boot\\ with no subfolders ; also /g/Boot// -> g:\Boot\ with subfolders */
-    std::pair<std::string,bool> path::host_to_host( const std::string &dir ) const {
-        bool subdirs = false;
-
-        int idx = dir.find_last_of('/');
-        if( idx != std::string::npos )
-            if( idx > 0 && ::at(dir,idx-1) == '/' ) //&& dir.find_last_of('*') > idx && dir.find_last_of('*') < std::string::npos )
-                subdirs = true;
-
-        return std::pair<std::string,bool>(dir,subdirs);
-    }
-
-    /* /g/Boot/ -> g:\\Boot\\ with no subfolders ; also /g/Boot// -> g:\Boot\ with subfolders */
-    std::pair<std::string,bool> path::host_to_os( const std::string &dir ) const {
-        bool subdirs = false;
-
-        int idx = dir.find_last_of('/');
-        if( idx != std::string::npos )
-            if( idx > 0 && ::at(dir,idx-1) == '/' ) //&& dir.find_last_of('*') > idx && dir.find_last_of('*') < std::string::npos )
-                subdirs = true;
-
-        $win32(
-        if( dir.size() > 2 && ::at(dir,0) == '/' && ::at(dir,2) == '/' &&
-         (( ::at(dir,1) >= 'a' && ::at(dir,1) <= 'z' ) || ( ::at(dir,1) >= 'A' && ::at(dir,1) <= 'Z' )) )
-            return std::pair<std::string,bool>( std::string() + ::at(dir,1) + ':' + ::replace(dir,"/","\\").substr(2), subdirs );
-        else
-            return std::pair<std::string,bool>( ::replace(dir,"/", "\\"), subdirs );
-        )
-        $welse(
-        return std::pair<std::string,bool>( dir, subdirs );
-        )
-    }
-
-    /* g:\\Boot\\ -> /g/Boot/ */
-    std::string path::os_to_host( const std::string &dir ) const {
-        $win32(
-        if( dir.size() > 2 && ::at(dir,1) == ':' && ::at(dir,2) == '\\' &&
-         (( ::at(dir,0) >= 'a' && ::at(dir,0) <= 'z' ) || ( ::at(dir,0) >= 'A' && ::at(dir,0) <= 'Z' )) )
-            return std::string( "/" ) + ::at(dir,0) + ::replace(dir,"\\","/").substr(2);
-        return ::replace(dir,"\\", "/");
-        )
-        $welse(
-        return dir;
-        )
-    }
-
-
-
-    file::file( const std::string &_pathfile, sorting_type defaults ) :
+    file::file( const std::string &_pathfile ) :
         is_temp_name( _pathfile.size() ? false : true ),
-        pathfile( _pathfile.size() ? _pathfile : std::tmpnam(0) ),
-        sorting(defaults)
+        pathfile( _pathfile.size() ? _pathfile : std::tmpnam(0) )
     {
         if( is_temp_name )
         {
@@ -547,7 +539,7 @@ namespace sao
         return npos == n.end() ? std::string() : &n.c_str()[ npos - n.begin() ];
     }
 
-    sao::path file::path() const {
+    std::string file::path() const {
         return pathfile;
     }
 
@@ -729,39 +721,6 @@ namespace sao
         return metadata;
     }
 
-    // sorting
-
-    void file::sort_by( sorting_type sorter ) {
-        sorting = sorter;
-    }
-
-    int file::compare_with( const file &other, sorting_type sorter ) {
-        sorting_type bkp = sorting;
-        sorting = sorter;
-        if( operator <( other ) ) return sorting = bkp, -1;
-        if( operator==( other ) ) return sorting = bkp,  0;
-        return sorting = bkp, +1;
-    }
-
-    bool file::operator==( const file &other ) const {
-        if( sorting == by_extension ) return ext() == other.ext();
-        if( sorting == by_size ) return size() == other.size();
-        if( sorting == by_date ) return date() == other.date();
-        if( sorting == by_type ) return is_dir() == other.is_dir();
-        //if( sorting == by_name )
-        return pathfile == other.pathfile;
-    }
-
-    bool file::operator<( const file &other ) const {
-        //@todo: lower!, buggy
-        if( sorting == by_extension ) return ext() < other.ext();
-        if( sorting == by_size ) return size() < other.size();
-        if( sorting == by_date ) return date() < other.date();
-        if( sorting == by_type ) return is_dir() < other.is_dir();
-        //if( sorting == by_name )
-        return pathfile < other.pathfile;
-    }
-
     bool file::patch( const std::string &patch_data, bool delete_tempfile ) const {
         if( !patch_data.size() )
             return false;
@@ -812,13 +771,6 @@ namespace sao
         std::swap( *this, target );
     }
 
-    folder folder::sort( file::sorting_type sorting ) const {
-        folder result;
-        for( const_iterator it = this->begin(); it != this->end(); ++it )
-            result.insert( file( it->name(), sorting ) );
-        return result;
-    }
-
     std::string folder::str( const char *format1 ) const {
         std::string out;
         for( const_iterator it = this->begin(); it != this->end(); ++it )
@@ -829,3 +781,547 @@ namespace sao
 
 #undef $win32
 #undef $welse
+
+// todo
+// platform = { roots[], separators[] }
+// unix = { {"/*"}, {"/"} }
+// win = { {"?:\*"}, {"\\"} }
+// http = { {"http://*"}, {'/', '&', '?'} }
+
+// absolute
+// relative
+
+// up
+// cwd
+// cd
+
+// path, stem
+// file
+// ext
+// args
+// fileext
+// pathfile
+// pathfileextargs
+
+// pop,push,at,size()
+// split,join,range
+
+// sane
+// os
+// directory
+// is_dir, is_file
+// exists
+// has_trail
+// parent
+// root
+
+// operations
+// rm
+// rmr
+// md
+// mv
+// ls
+// lsr
+// touch
+
+
+
+/* A class for path manipulation */
+namespace apathy {
+
+    /**************************************************************************
+     * Operators
+     *************************************************************************/
+    path &path::operator<<( const path &segment) {
+        return append(segment);
+    }
+
+    path path::operator+( const path &segment) const {
+        path result(m_path);
+        result.append(segment);
+        return result;
+    }
+
+    bool path::equivalent( const path &other) const {
+        /* Make copies of both paths, normalize, and ensure they're equal */
+        std::string A = path(m_path).normalize().absolute().os();
+        std::string B = path(other).normalize().absolute().os();
+        bool ok = A == B;
+        if( !ok ) {
+            std::cout << "A:" << A << ',' << std::endl;
+            std::cout << "B:" << B << ',' << std::endl;
+        }
+        return ok;
+    }
+
+    std::string path::filename() const {
+        size_t pos = m_path.rfind(separator);
+        if (pos != std::string::npos) {
+            return m_path.substr(pos + 1);
+        }
+        return "";
+    }
+
+    std::string path::extension() const {
+        /* Make sure we only look in the filename, and not the path */
+        std::string name = filename();
+        size_t pos = name.rfind('.');
+        if (pos != std::string::npos) {
+            return name.substr(pos + 1);
+        }
+        return "";
+    }
+
+    path path::stem() const {
+        size_t sep_pos = m_path.rfind(separator);
+        size_t dot_pos = m_path.rfind('.');
+        if (dot_pos == std::string::npos) {
+            return path(*this);
+        }
+
+        if (sep_pos == std::string::npos || sep_pos < dot_pos) {
+            return path(m_path.substr(0, dot_pos));
+        } else {
+            return path(*this);
+        }
+    }
+
+    /**************************************************************************
+     * Manipulators
+     *************************************************************************/
+    path &path::append( const path &segment) {
+        /* First, check if the last character is the separator character.
+         * If not, then append one and then the segment. Otherwise, just
+         * the segment */
+        if (!trailing_slash()) {
+            m_path.push_back(separator);
+        }
+        m_path.append(segment.m_path);
+        return *this;
+    }
+
+    path &path::relative( const path &rel) {
+        if (!rel.is_absolute()) {
+            return append(rel);
+        } else {
+            operator=(rel);
+            return *this;
+        }
+    }
+
+    path &path::up() {
+        /* Make sure we turn this into an absolute url if it's not already
+         * one */
+        if (m_path.size() == 0) {
+            m_path = "..";
+            return directory();
+        }
+
+        append("..").normalize();
+        if (m_path.size() == 0) {
+            return *this;
+        }
+        return directory();
+    }
+
+    path path::absolute() const {
+        return path( is_absolute() ? *this : path( join(cwd(), m_path) ) );
+    }
+
+    path &path::normalize() {
+        /* Split the path up into segments */
+        std::vector<Segment> segments(split());
+        /* We may have to test this repeatedly, so let's check once */
+        bool relative = !is_absolute();
+
+        /* Now, we'll create a new set of segments */
+        std::vector<Segment> pruned;
+        for (size_t pos = 0; pos < segments.size(); ++pos) {
+            /* Skip over empty segments and '.' */
+            if (segments[pos].segment.size() == 0 ||
+                segments[pos].segment == ".") {
+                continue;
+            }
+
+            /* If there is a '..', then pop off a parent directory. However, if
+             * the path was relative to begin with, if the '..'s exceed the
+             * stack depth, then they should be appended to our m_path. If it was
+             * absolute to begin with, and we reach root, then '..' has no
+             * effect */
+            if (segments[pos].segment == "..") {
+                if (relative) {
+                    if (pruned.size() && pruned.back().segment != "..") {
+                        pruned.pop_back();
+                    } else {
+                        pruned.push_back(segments[pos]);
+                    }
+                } else if (pruned.size()) {
+                    pruned.pop_back();
+                }
+                continue;
+            }
+
+            pruned.push_back(segments[pos]);
+        }
+
+        bool was_directory = trailing_slash();
+        if (!relative) {
+            m_path = std::string(1, separator) + path::join(pruned).m_path;
+            if (was_directory) {
+                return directory();
+            }
+            return *this;
+        }
+
+        /* It was a relative path */
+        m_path = path::join(pruned).m_path;
+        if (m_path.length() && was_directory) {
+            return directory();
+        }
+        return *this;
+    }
+
+    std::string path::os() const {
+#ifdef _WIN32
+        return path( *this ).normalize().absolute().win();
+#else
+        return path( *this ).normalize().absolute().posix();
+#endif
+    }
+
+    std::string path::win() const {
+        std::string copy = this->m_path, path = copy;
+
+        if( path.size() >= 2 && path[2] == ':' ) {
+            path = path.substr( 1 );
+        }
+        if( path.size() >= 1 && path[1] == ':' ) {
+            path = path;
+        }
+        if( path.size() >= 2 && path[0] == separator && path[2] == separator ) {
+            std::swap( path[0], path[1] );
+            path[1] = ':';
+        }
+        for( auto &in : path ) {
+            if( in == separator ) in = separator_alt;
+        }
+        while( path.size() && path.back() == separator_alt ) {
+            path.pop_back();
+        }
+        if( copy.size() && (copy.back() == separator || copy.back() == separator_alt) ) {
+            path.push_back( separator_alt );
+        }
+        return path;
+    }
+
+    std::string path::posix() const {
+        std::string path = win();
+        if( path[1] == ':' ) {
+            std::swap( path[0], path[1] );
+            path[0] = separator;
+        }
+        for( auto &in : path ) {
+            if( in == separator_alt ) in = separator;
+        }
+        return path;
+    }
+
+    path &path::directory() {
+        trim();
+        m_path.push_back(separator);
+        return *this;
+    }
+
+    path &path::trim() {
+        if (m_path.length() == 0) { return *this; }
+
+        size_t p = m_path.find_last_not_of(separator);
+        if (p != std::string::npos) {
+            m_path.erase(p + 1, m_path.size());
+        } else {
+            m_path = "";
+        }
+        return *this;
+    }
+
+    /**************************************************************************
+     * Member Utility Methods
+     *************************************************************************/
+
+    /* Returns a vector of each of the path segments in this path */
+    std::vector<path::Segment> path::split() const {
+        std::stringstream stream(m_path);
+        std::istream_iterator<path::Segment> start(stream);
+        std::istream_iterator<path::Segment> end;
+        std::vector<path::Segment> results(start, end);
+        if (trailing_slash()) {
+            results.push_back(path::Segment(""));
+        }
+        return results;
+    }
+
+    /**************************************************************************
+     * Tests
+     *************************************************************************/
+    bool path::is_absolute() const {
+        return ( m_path.size() > 2 && m_path[1] == ':' && m_path[2] == separator_alt )
+        || ( m_path.size() && ( m_path[0] == separator || m_path[0] == separator_alt ) );
+    }
+
+    bool path::trailing_slash() const {
+        return m_path.size() && (m_path.back() == separator || m_path.back() == separator_alt);
+    }
+
+    bool path::exists() const {
+        struct stat buf;
+        if (stat(os().c_str(), &buf) != 0) {
+            return false;
+        }
+        return true;
+    }
+
+    bool path::is_file() const {
+        struct stat buf;
+        if (stat(os().c_str(), &buf) != 0) {
+            return false;
+        } else {
+            return S_ISREG(buf.st_mode);
+        }
+    }
+
+    bool path::is_directory() const {
+        struct stat buf;
+        if (stat(os().c_str(), &buf) != 0) {
+            return false;
+        } else {
+            return S_ISDIR(buf.st_mode);
+        }
+    }
+
+    size_t path::size() const {
+        struct stat buf;
+        if (stat(os().c_str(), &buf) != 0) {
+            return 0;
+        } else {
+            return buf.st_size;
+        }
+    }
+
+    /**************************************************************************
+     * Static Utility Methods
+     *************************************************************************/
+    path path::join( const path &a, const path &b) {
+        path p(a);
+        p.append(b);
+        return p;
+    }
+
+    path path::join( const std::vector<Segment>& segments) {
+        std::string p;
+        /* Now, we'll go through the segments, and join them with
+         * separator */
+        std::vector<Segment>::const_iterator it(segments.begin());
+        for(; it != segments.end(); ++it) {
+            p += it->segment;
+            if (it + 1 != segments.end()) {
+                p += std::string(1, separator);
+            }
+        }
+        return path(p);
+    }
+
+    path path::cwd() {
+        path p;
+
+        char * buf = getcwd(NULL, 0);
+        if (buf != NULL) {
+            p = std::string(buf);
+            free(buf);
+        } else {
+            perror("cwd");
+        }
+
+        /* Ensure this is a directory */
+        p.directory();
+
+#ifdef _WIN32
+        p = path( path( p.os() ). posix() );
+#endif
+
+        return p;
+    }
+
+    bool path::touch( const path &p, unsigned mode_ ) {
+        mode_t mode = mode_;
+        int fd = open(p.os().c_str(), O_RDONLY | O_CREAT, mode);
+        if (fd == -1) {
+            md(p);
+            fd = open(p.os().c_str(), O_RDONLY | O_CREAT, mode);
+            if (fd == -1) {
+                return false;
+            }
+        }
+        if (close(fd) == -1) {
+            perror("touch close");
+            return false;
+        }
+        return true;
+    }
+
+    bool path::mv( const path &source, const path &dest, bool mkdirs) {
+        int result = rename(source.os().c_str(), dest.os().c_str());
+        if (result == 0) {
+            return true;
+        }
+        /* Otherwise, there was an error */
+        if (errno == ENOENT && mkdirs) {
+            md(dest.parent());
+            return rename(source.os().c_str(), dest.os().c_str()) == 0;
+        }
+        return false;
+    }
+
+    bool path::md( const path &p, unsigned mode_ ) {
+        mode_t mode = mode_;
+        /* We need to make a copy of the path, that's an absolute path */
+        path abs = path(p).absolute();
+        auto dirs = abs.split();
+
+        /* Now, we'll try to make the directory / ensure it exists */
+        if (mkdir(abs.string().c_str(), mode) == 0) {
+            return true;
+        }
+
+        /* Otherwise, there was an error. There are some errors that
+         * may be recoverable */
+        if (errno == EEXIST) {
+            return abs.is_directory();
+        } else if(errno == ENOENT) {
+
+            /* We'll need to try to recursively make this directory. We
+             * don't need to worry about reaching the '/' path, and then
+             * getting to this point, because / always exists */
+            md(abs.parent(), mode);
+
+            if (mkdir(abs.string().c_str(), mode) == 0) {
+                return true;
+            } else {
+                perror("makedirs");
+                return false;
+            }
+        } else {
+            perror("makedirs");
+        }
+
+        /* If it's none of these cases, then it's one of unrecoverable
+         * errors described in mkdir(2) */
+        return false;
+    }
+
+    // remove file or directory
+    bool path::rm( const path &p) {
+        if( !p.exists() || 0 == remove(p.os().c_str()) || 0 == ::rmdir(p.os().c_str())) {
+            errno = 0;
+            return true;
+        } else {
+            perror("Remove");
+            return false;
+        }
+    }
+
+    bool path::rmrf( const path &p, bool ignore_errors) {
+
+        bool ok = true;
+        if( p.is_directory() ) {
+            /* First, we list out all the members of the path, and anything
+             * that's a directory, we rmrf(...) it. If it's a file, then we
+             * remove it */
+            std::vector<path> subdirs(ls(p));
+            std::vector<path>::iterator it(subdirs.begin());
+            for (; it != subdirs.end(); ++it) {
+                if (it->is_directory() && !rmrf(*it) && !ignore_errors) {
+                    ok = false;
+                    //std::cout << "Failed rmdirs " << it->string() << std::endl;
+                } else if (it->is_file() && !rm(*it) && !ignore_errors) {
+                    ok = false;
+                    //std::cout << "Failed remove " << it->string() << std::endl;
+                }
+            }
+        }
+
+        /* Lastly, try to remove the directory, or file, itself */
+        bool result = rm(p) && ok;
+        return result;
+    }
+
+    /* List all the paths in a directory
+     *
+     * @param p - path to list items for */
+    std::vector<path> path::ls( const path &p ) {
+#ifdef _WIN32
+        path base(p.win());
+#else
+        path base(p.posix());
+#endif
+
+        std::vector<path> results;
+        DIR* dir = opendir(base.string().c_str());
+        if (dir == NULL) {
+            /* If there was an error, return an empty vector */
+            return results;
+        }
+
+        /* Otherwise, go through everything */
+        for (dirent* ent = readdir(dir); ent != NULL; ent = readdir(dir)) {
+            /* Skip the parent directory listing */
+            if (!strcmp(ent->d_name, "..")) {
+                continue;
+            }
+
+            /* Skip the self directory listing */
+            if (!strcmp(ent->d_name, ".")) {
+                continue;
+            }
+
+            path cpy = path(base).relative(ent->d_name).posix();
+            results.push_back( cpy );
+        }
+
+        errno = 0;
+        closedir(dir);
+        return results;
+    }
+
+    std::vector<path> path::glob( const std::string& pattern ) {
+
+        std::string where = path( pattern ).normalize().string();
+        std::string mask = pattern;
+
+        auto found = where.find_last_of(separator);
+        if( found != std::string::npos ) {
+            //mask = where.substr( found +1 );
+            mask = where;
+            where = where.substr( 0, found +1 );
+        } else {
+            mask = pattern;
+            where = "";
+        }
+
+        struct local {
+            static bool match( const char *pattern, const char *str ) {
+                if( *pattern=='\0' ) return !*str;
+                if( *pattern=='*' )  return match(pattern+1, str) || *str && match(pattern, str+1);
+                if( *pattern=='?' )  return *str && (*str != '.') && match(pattern+1, str+1);
+                return (*str == *pattern) && match(pattern+1, str+1);
+            }
+        };
+
+        std::vector<path> results;
+        for( auto &file : path::ls( where ) ) {
+            if( local::match(mask.c_str(), file.m_path.c_str()) ) {
+                results.push_back( file );
+            }
+        }
+        return results;
+    }
+}

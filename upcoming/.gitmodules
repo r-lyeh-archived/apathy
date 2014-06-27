@@ -1,0 +1,195 @@
+[submodule "glfw"]
+    path = ./glfw
+    url = https://github.com/glfw/glfw
+[submodule "iqm"]
+    path = ./iqm
+    url = https://github.com/lsalzman/iqm
+[submodule "glm"]
+    path = ./glm
+    url = https://github.com/g-truc/glm
+[submodule "vaserenderer"]
+    path = ./vaserenderer
+    url = https://github.com/tyt2y3/vaserenderer
+[submodule "bullet3"]
+    path = ./bullet3
+    url = https://github.com/bulletphysics/bullet3
+[submodule "glew"]
+    path = ./glew
+    url = https://github.com/HeliumProject/glew
+
+[submodule "live"]
+    path = ./live
+    url = https://github.com/r-lyeh/live
+[submodule "id"]
+    path = ./id
+    url = https://github.com/r-lyeh/id
+[submodule "memo"]
+    path = ./memo
+    url = https://github.com/r-lyeh/memo
+[submodule "wrapp"]
+    path = ./wrapp
+    url = https://github.com/r-lyeh/wrapp
+
+
+[submodule "atlas"]
+    path = ./atlas
+    url = https://github.com/r-lyeh/atlas
+[submodule "ARYA"]
+    path = ./ARYA
+    url = https://github.com/r-lyeh/ARYA
+[submodule "auth"]
+    path = ./auth
+    url = https://github.com/r-lyeh/auth
+[submodule "base91x"]
+    path = ./base91x
+    url = https://github.com/r-lyeh/base91x
+[submodule "blender"]
+    path = ./blender
+    url = https://github.com/r-lyeh/blender
+[submodule "bundle"]
+    path = ./bundle
+    url = https://github.com/r-lyeh/bundle
+[submodule "bundler"]
+    path = ./bundler
+    url = https://github.com/r-lyeh/bundler
+[submodule "cocoa"]
+    path = ./cocoa
+    url = https://github.com/r-lyeh/cocoa
+[submodule "codex"]
+    path = ./codex
+    url = https://github.com/r-lyeh/codex
+[submodule "depot"]
+    path = ./depot
+    url = https://github.com/r-lyeh/depot
+[submodule "dessert"]
+    path = ./dessert
+    url = https://github.com/r-lyeh/dessert
+[submodule "dot"]
+    path = ./dot
+    url = https://github.com/r-lyeh/dot
+[submodule "duty"]
+    path = ./duty
+    url = https://github.com/r-lyeh/duty
+[submodule "eve"]
+    path = ./eve
+    url = https://github.com/r-lyeh/eve
+[submodule "fontbase"]
+    path = ./fontbase
+    url = https://github.com/r-lyeh/fontbase
+[submodule "fsm"]
+    path = ./fsm
+    url = https://github.com/r-lyeh/fsm
+[submodule "gate"]
+    path = ./gate
+    url = https://github.com/r-lyeh/gate
+[submodule "graveyard"]
+    path = ./graveyard
+    url = https://github.com/r-lyeh/graveyard
+[submodule "grog"]
+    path = ./grog
+    url = https://github.com/r-lyeh/grog
+[submodule "heal"]
+    path = ./heal
+    url = https://github.com/r-lyeh/heal
+[submodule "hyde"]
+    path = ./hyde
+    url = https://github.com/r-lyeh/hyde
+[submodule "imgui"]
+    path = ./imgui
+    url = https://github.com/r-lyeh/imgui
+[submodule "jpng"]
+    path = ./jpng
+    url = https://github.com/r-lyeh/jpng
+[submodule "JXML"]
+    path = ./JXML
+    url = https://github.com/r-lyeh/JXML
+[submodule "JXMLex"]
+    path = ./JXMLex
+    url = https://github.com/r-lyeh/JXMLex
+[submodule "knot"]
+    path = ./knot
+    url = https://github.com/r-lyeh/knot
+[submodule "kult"]
+    path = ./kult
+    url = https://github.com/r-lyeh/kult
+[submodule "medea"]
+    path = ./medea
+    url = https://github.com/r-lyeh/medea
+[submodule "memo"]
+    path = ./memo
+    url = https://github.com/r-lyeh/memo
+[submodule "metatracker"]
+    path = ./metatracker
+    url = https://github.com/r-lyeh/metatracker
+[submodule "moon9"]
+    path = ./moon9
+    url = https://github.com/r-lyeh/moon9
+[submodule "oak"]
+    path = ./oak
+    url = https://github.com/r-lyeh/oak
+[submodule "rgb332"]
+    path = ./rgb332
+    url = https://github.com/r-lyeh/rgb332
+[submodule "sand"]
+    path = ./sand
+    url = https://github.com/r-lyeh/sand
+[submodule "sao"]
+    path = ./sao
+    url = https://github.com/r-lyeh/sao
+[submodule "sentry"]
+    path = ./sentry
+    url = https://github.com/r-lyeh/sentry
+[submodule "social"]
+    path = ./social
+    url = https://github.com/r-lyeh/social
+[submodule "sharpdoc"]
+    path = ./sharpdoc
+    url = https://github.com/r-lyeh/sharpdoc
+[submodule "silo"]
+    path = ./silo
+    url = https://github.com/r-lyeh/silo
+[submodule "skull"]
+    path = ./skull
+    url = https://github.com/r-lyeh/skull
+[submodule "sole"]
+    path = ./sole
+    url = https://github.com/r-lyeh/sole
+[submodule "sqlight"]
+    path = ./sqlight
+    url = https://github.com/r-lyeh/sqlight
+[submodule "stringbase"]
+    path = ./stringbase
+    url = https://github.com/r-lyeh/stringbase
+[submodule "test-allocators"]
+    path = ./test-allocators
+    url = https://github.com/r-lyeh/test-allocators
+[submodule "test-physics"]
+    path = ./test-physics
+    url = https://github.com/r-lyeh/test-physics
+[submodule "tracey"]
+    path = ./tracey
+    url = https://github.com/r-lyeh/tracey
+[submodule "trie"]
+    path = ./trie
+    url = https://github.com/r-lyeh/trie
+[submodule "unordered_map"]
+    path = ./unordered_map
+    url = https://github.com/r-lyeh/unordered_map
+[submodule "vault"]
+    path = ./vault
+    url = https://github.com/r-lyeh/vault
+[submodule "variant"]
+    path = ./variant
+    url = https://github.com/r-lyeh/variant
+[submodule "wake"]
+    path = ./wake
+    url = https://github.com/r-lyeh/wake
+[submodule "wave"]
+    path = ./wave
+    url = https://github.com/r-lyeh/wave
+[submodule "wire"]
+    path = ./wire
+    url = https://github.com/r-lyeh/wire
+[submodule "wood"]
+    path = ./wood
+    url = https://github.com/r-lyeh/wood

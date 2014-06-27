@@ -1,0 +1,6 @@
+[submodule "oak"]
+	path = upcoming/oak
+	url = https://github.com/r-lyeh/oak
+[submodule "giant"]
+	path = upcoming/giant
+	url = https://github.com/r-lyeh/giant

@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <iostream>
 #include <string>
-#include "sao.hpp"
+#include "apathy.hpp"
 
 void my_custom_logger( bool open, bool feed, bool close, const std::string &line )
 {
@@ -39,12 +39,12 @@ void my_custom_logger( bool open, bool feed, bool close, const std::string &line
 int main() {
     std::cout << "next lines are going to be redirected to a 'log.html' file ..." << std::endl;
 
-    sao::stream::attach( std::cout, my_custom_logger );
+    apathy::stream::attach( std::cout, my_custom_logger );
 
     std::cout << "this is a line redirected from standard std::cout stream to a custom HTML file logger" << std::endl;
     std::cout << "this is a line redirected from standard std::cout stream to a custom HTML file logger" << std::endl;
 
-    sao::stream::detach( std::cout );
+    apathy::stream::detach( std::cout );
 
     std::cout << "... back from redirecting. Please check 'log.html' file." << std::endl;
 }

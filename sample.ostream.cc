@@ -1,6 +1,6 @@
 #include <iostream>
 #include <string>
-#include "sao.hpp"
+#include "apathy.hpp"
 
 namespace {
     void default_error_callback( bool open, bool feed, bool close, const std::string &line ) {
@@ -22,7 +22,7 @@ namespace {
     }
 }
 
-std::ostream &error = sao::stream::make(default_error_callback);
+std::ostream &error = apathy::stream::make(default_error_callback);
 
 int main() {
     error << "this is an error sample" << std::endl;
