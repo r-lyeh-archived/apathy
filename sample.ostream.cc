@@ -22,7 +22,7 @@ namespace {
     }
 }
 
-std::ostream &error = apathy::stream::make(default_error_callback);
+std::ostream &error = apathy::ostream::make(default_error_callback);
 
 int main() {
     error << "this is an error sample" << std::endl;

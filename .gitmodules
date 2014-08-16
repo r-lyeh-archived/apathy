@@ -1,6 +1,6 @@
-[submodule "oak"]
-	path = upcoming/oak
-	url = https://github.com/r-lyeh/oak
+[submodule "dessert"]
+	path = redist/deps/dessert
+	url = https://github.com/r-lyeh/dessert
 [submodule "giant"]
-	path = upcoming/giant
+	path = redist/deps/giant
 	url = https://github.com/r-lyeh/giant

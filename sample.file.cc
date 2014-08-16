@@ -11,7 +11,7 @@ int main() {
     std::cout << apathy::file("test.exe").ext() << std::endl;
 
     assert( apathy::file(tmpname).overwrite(tmpname) );
-    assert( apathy::file(tmpname).exist() );
+    assert( apathy::file(tmpname).exists() );
     assert( apathy::file(tmpname).append(tmpname) );
     assert( apathy::file(tmpname).size() > 0 );
     assert( apathy::file(tmpname).read() == tmpname + tmpname );

@@ -1,19 +1,20 @@
 Apathy
 ======
 
-Apathy is a lightweight stream/file/path IO C++11 library with no dependencies.
+- Apathy is a stream/file/mmap/path/virtual-filesystem IO C++11 library.
+- Apathy is stand-alone. No dependencies.
+- Apathy is tiny. Single source and header.
+- Apathy is cross-platform.
+- Apathy is MIT licensed.
 
 ### Motivation
-path manip
-file operation
-file globbing
-data streaming
-data decoding
-fs watching
-fs mounting
-fs encryption
-fs compression
-also scripting support
+- path manipulation api -> path
+- file operation api -> file
+- file globbing api -> glob
+- data streaming api -> stream
+- data decoding api -> pipe
+- fs watching api -> watch
+- fs mounting api -> mount
 
 Features
 --------
@@ -241,4 +242,3 @@ Roadmap
 =======
 The interface is a little bit in flux, but I now need this code in more than
 one projects, so it was time for it to move into its own repository.
-
