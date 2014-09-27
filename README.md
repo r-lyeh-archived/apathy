@@ -5,7 +5,7 @@ Apathy
 - Apathy is stand-alone. No dependencies.
 - Apathy is tiny. Single source and header.
 - Apathy is cross-platform.
-- Apathy is MIT licensed.
+- Apathy is BOOST licensed.
 
 ### Motivation
 - path manipulation api -> path

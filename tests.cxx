@@ -1,32 +1,3 @@
-/*
- * Apathy is a lightweight stream/file/path IO C++11 library with no dependencies.
- * Copyright (c) 2011,2012,2013,2014 Mario 'rlyeh' Rodriguez
- * Copyright (c) 2013 Dan Lecocq
-
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
-
- * todo:
- * - see apathy.cpp
-
- * - rlyeh ~~ listening to Alice in chains / Nutshell
- */
-
 #include <algorithm>
 #include <cassert>
 #include <iostream>
@@ -768,17 +739,17 @@ namespace apathy
 #include <sstream>
 namespace dessert {
 	using namespace std;
+	using timer = chrono::high_resolution_clock;
+	template<typename T> inline string to_str( const T &t ) { stringstream ss; return (ss << t) ? ss.str() : "??"; }
+	template<          > inline string to_str( const timer::time_point &start ) {
+		return to_str( double((timer::now() - start).count()) * timer::period::num / timer::period::den );
+	}
 	class suite {
-		using timer = chrono::high_resolution_clock;
 		timer::time_point start = timer::now();
 		deque< string > xpr;
 		int ok = false, has_bp = false;
 		enum { BREAKPOINT, BREAKPOINTS, PASSED, FAILED, TESTNO };
 		static unsigned &get(int i) { static unsigned var[TESTNO+1] = {}; return var[i]; }
-		template<typename T> static string to_str( const T &t ) { stringstream ss; return ss << t ? ss.str() : "??"; }
-		template<          > static string to_str( const timer::time_point &start ) {
-			return to_str( double((timer::now() - start).count()) * timer::period::num / timer::period::den );
-		}
 	public:
 		static bool queue( const function<void()> &fn, const string &text ) {
 			static auto start = timer::now();
@@ -820,9 +791,8 @@ namespace dessert {
 				xpr.push_back( "(unexpected)" );
 			}
 			for( unsigned it = 0; it < xpr.size(); ++it ) {
-				fprintf( stderr, xpr[it].size() ? "%s%s\n" : "", tab[ !it ].c_str(), xpr[it].c_str() );
-			}
-		}
+			 if(xpr[it].size()) fprintf( stderr, "%s%s\n", tab[ !it ].c_str(), xpr[it].c_str() );
+		} }
 #       define dessert$join(str, num) str##num
 #       define dessert$glue(str, num) dessert$join(str, num)
 #       define dessert$line(str)      dessert$glue(str, __LINE__)
