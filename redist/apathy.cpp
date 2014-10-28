@@ -132,6 +132,13 @@
 #include "deps/fmstream/fmstream.h"
 #include "deps/fmstream/fmstream.cpp"
 
+#ifdef _MSC_VER
+#   ifndef _CRT_SECURE_NO_WARNINGS
+#       define _CRT_SECURE_NO_WARNINGS
+#   endif
+#   pragma warning(disable: 4996) 
+#endif
+
 // api
 
 namespace apathy
@@ -1498,6 +1505,9 @@ namespace apathy {
 #       endif
         bool mkdir( const std::string &path, unsigned mode ) {
             return path::md( path, mode );
+        }
+        bool rmdir( const std::string &path ) {
+            return path::rmrf( path, true );
         }
 
     // glob files and directories

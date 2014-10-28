@@ -565,8 +565,10 @@ namespace apathy
     void popd();
     std::string cwd();
 
-    void sleep( double t );
     bool mkdir( const std::string &path, unsigned mode = 0644 );
+    bool rmdir( const std::string &path );
+
+    void sleep( double t );
 
     // glob files and directories
 
