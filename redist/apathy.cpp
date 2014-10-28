@@ -106,6 +106,8 @@
 #   include <direct.h>
 #   include <io.h>
 #   include <sys/utime.h>
+#   include <shlwapi.h> // PathIsDirectory()
+#   pragma comment(lib, "Shlwapi.lib")
 #   define $win32(...) __VA_ARGS__
 #   define $welse(...)
 #   define open _open
@@ -482,13 +484,20 @@ namespace {
 
 namespace apathy
 {
+    namespace {
+        std::map< std::string, ifmstream > *chunks = 0;
+    }
+
+
     file::file( const std::string &_pathfile ) :
         is_temp_name( _pathfile.size() ? false : true ),
         pathfile( _pathfile.size() ? _pathfile : std::tmpnam(0) )
     {
-        static bool once = false;
-        if( !once ) {
-            once = true;
+        static bool once = true;
+        if( once ) {
+            once = false;
+            static std::map< std::string, ifmstream > map;
+            chunks = &map;
             chunk(0,0);
         }
 
@@ -636,15 +645,28 @@ namespace apathy
     }
 
     bool file::exists() const { // may fail due to permissions (check errno)
-        struct stat fileInfo;
-        return stat( pathfile.c_str(), &fileInfo ) == 0 ? true : false;
+        // struct stat fileInfo;
+        // return stat( pathfile.c_str(), &fileInfo ) == 0 ? true : false;
+#ifdef _WIN32
+        return 0 == _access(pathfile.c_str(), 0);
+#else
+        return 0 == access(pathfile.c_str(), F_OK);
+#endif
     }
 
     bool file::is_dir() const { // may return false due to permissions (check errno)
+#ifdef _WIN32
+        return FALSE != PathIsDirectory( pathfile.c_str() );
+#else
         struct stat fileInfo;
         if( stat( pathfile.c_str(), &fileInfo ) < 0 )
             return false;
+#ifdef S_ISDIR
+        return ( S_ISDIR(fileInfo.st_mode) ) != 0;
+#else
         return (( fileInfo.st_mode & S_IFMT ) == S_IFDIR );
+#endif
+#endif
     }
 
     bool file::is_file() const { // may return true due to permissions (check errno)
@@ -1337,15 +1359,12 @@ namespace apathy {
         bool file::munmap() {
             return chunk( 0, 0 ), true;
         }
-        namespace {
-        static std::map< std::string, ifmstream > map;
-        }
         stream file::chunk( size_t offset, size_t length ) {
             //try {
-                auto found = map.find( name() );
-                if( found == map.end() ) {
-                    map.insert( { name(), ifmstream() } );
-                    found = map.find( name() );
+                auto found = chunks->find( name() );
+                if( found == chunks->end() ) {
+                    chunks->insert( { name(), ifmstream() } );
+                    found = chunks->find( name() );
                 }
                 auto &fm = found->second;
                 if( offset < size() && length ) {
@@ -1453,36 +1472,54 @@ namespace apathy {
 
     // working directories
 
-        static std::vector<std::string> _cwd = {"./"};
+        namespace {
+            std::vector<std::string> &_cwd() {
+                static std::vector<std::string> list = {"./"};
+                return list;
+            }
+        }
         void chdir( const std::string &path ) {
-            _cwd.back() = path;
+            _cwd().back() = path;
         }
         void pushd() {
-            _cwd.push_back( _cwd.back() );
+            _cwd().push_back( _cwd().back() );
         }
         void popd() {
-            if( _cwd.size() > 1 ) _cwd.pop_back();
+            if( _cwd().size() > 1 ) _cwd().pop_back();
         }
         std::string cwd() {
-            return _cwd.back(); //apathy::path::cwd().string();
+            return _cwd().back(); //apathy::path::cwd().string();
+        }
+
+    // 
+
+#       ifdef mkdir
+#           undef mkdir
+#       endif
+        bool mkdir( const std::string &path, unsigned mode ) {
+            return path::md( path, mode );
         }
 
     // glob files and directories
 
-        bool globr( const std::string &uri_, uris &fs, uris &dirs, unsigned recurse ) {
-                std::string uri = normalize(uri_);
-                while (uri.size() && uri.back() == '/') uri.pop_back();
-                DIR *opened = 0;
+        bool globr( const std::string &uri_, uris &files, uris &dirs, unsigned recurse ) {
+            std::string uri = normalize(uri_), pretty = uri;
+            
+            // pretty might be '/home/user/dir////', or 'c:\' at this point
+            // ensure it does not convert into 'c:' (that would retrieve files at cwd instead of root files)
+            if( pretty.size() && (pretty.back() != ':' && pretty.back() != '/') ) pretty += '/';
+
+            DIR *opened = 0;
             for( DIR *dir = opened = opendir( uri.c_str() ); dir; closedir(dir), dir = 0 ) {
                 for( struct dirent *ent = readdir(dir); ent ; ent = readdir(dir) ) {
                     std::string name( ent->d_name );
-                    if( name[0] != '.' && name != "svn" ) { // skips . .. .hg .git svn
-                        if( apathy::file( name ).is_dir() ) {
-                            dirs.insert( notrails( normalize( uri + "/" + name ) ) );
-                            if( recurse ) globr( name, fs, dirs, recurse - 1 );
-                        } else {
-                            fs.insert( normalize( uri + "/" + name ) );
+                    if( apathy::file( pretty + name ).is_dir() ) {
+                        if( name[0] != '.' && name != "svn" ) { // bypass recursion of . .. .hg .git svn dirs
+                            dirs.insert( notrails( normalize( pretty + name ) ) );
+                            if( recurse ) globr( pretty + name, files, dirs, recurse - 1 );
                         }
+                    } else {
+                        files.insert( normalize( pretty + name ) );
                     }
                 }
             }

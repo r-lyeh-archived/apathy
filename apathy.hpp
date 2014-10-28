@@ -566,13 +566,14 @@ namespace apathy
     std::string cwd();
 
     void sleep( double t );
+    bool mkdir( const std::string &path, unsigned mode = 0644 );
 
     // glob files and directories
 
-    bool glob( const std::string &uri, uris &fs, uris &dirs );
-    bool globr( const std::string &uri_, uris &fs, uris &dirs, unsigned recurse = ~0 );
+    bool glob( const std::string &uri, uris &files, uris &dirs );
+    bool globr( const std::string &uri, uris &files, uris &dirs, unsigned recurse_level = ~0 );
 
-    uris &filter( uris &set, const std::string &includes_ = "*", const std::string &excludes_ = "" );
+    uris &filter( uris &set, const std::string &includes = "*", const std::string &excludes = "" );
 
     uris lsf( const std::string &includes = "*", const std::string &excludes = "" );
     uris lsfr( const std::string &includes = "*", const std::string &excludes = "" );

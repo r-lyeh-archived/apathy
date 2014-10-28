@@ -21,6 +21,41 @@ desserts("file globbing") {
     dessert( list.size() > 0 );
 }
 
+desserts("absolute file globbing") {
+    uris files;
+    uris dirs;
+
+#ifdef _WIN32
+    std::string tmpdir = getenv("TEMP") ? getenv("TEMP") : "";
+#else
+    std::string tmpdir = getenv("TMPDIR") ? getenv("TMPDIR") : "";
+#endif
+
+    if( !tmpdir.empty() ) {
+        files.clear();
+        dirs.clear();
+        dessert( apathy::mkdir( tmpdir + "/apathy" ) );
+        dessert( apathy::globr(tmpdir, files, dirs) );
+         assert( files.find(tmpdir + "/apathy") == files.end() );
+         assert( dirs.find(tmpdir + "/apathy") != dirs.end() );
+    }
+
+#ifdef _WIN32
+    files.clear();
+    dirs.clear();
+    dessert( apathy::glob("C:", files, dirs) );
+     assert( files.find("apathy.cpp") != files.end() );
+     assert( dirs.find("redist") != files.end() );
+
+    files.clear();
+    dirs.clear();
+    dessert( apathy::glob("C:/", files, dirs) );
+     assert( files.find("apathy.cpp") == files.end() );
+     assert( dirs.find("redist") == files.end() );
+#endif
+}
+
+
 desserts("folder monitoring") {
 #if 0
     std::cout << "save " << __FILE__ << " to exit..." << std::endl;
@@ -58,16 +93,16 @@ desserts("filesystems") {
     vfs.mount("tests/*", "my_tests/");
     vfs.mount("music.zip/*", "music/");
     vfs.mount("textures/*", "icons/");
-    vfs.mount("*.cpp", "code/");
+    vfs.mount("*.c*", "code/");
     vfs.mount("**.cpp", "code-r/");
 
     // flat paths
     vfs.mount("dlc-watchman/*.txt", "/" );
 
-    dessert( vfs.exists("code/extra.cpp") );
-    dessert( vfs.exists("file://code/extra.cpp") );
+    dessert( vfs.exists("code/tests.cxx") );
+    dessert( vfs.exists("file://code/tests.cxx") );
 
     std::cout << vfs.toc() << std::endl;
 
-    dessert( vfs.read("file://code/extra.cpp") == apathy::file(__FILE__).read() );
+    dessert( vfs.read("file://code/tests.cxx") == apathy::file(__FILE__).read() );
 }
