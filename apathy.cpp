@@ -3532,7 +3532,7 @@ namespace apathy {
 				if( offset < size() && length ) {
 					fm.open( name().c_str(), length == ~0 ? 0 : length, offset );
 					if( fm.is_open() ) {
-						return stream( fm.data(), length );
+						return stream( fm.data(), length == ~0 ? fm.size() : length );
 					}
 				}
 				/*
@@ -3998,7 +3998,7 @@ namespace apathy {
 			open();
 		}
 
-		bool stream::good( unsigned off ) {
+		bool stream::good( unsigned off ) const {
 			return cursor && cursor >= begin && cursor + off < end;
 		}
 
@@ -4016,17 +4016,20 @@ namespace apathy {
 			cursor = (char *)begin;
 			return good();
 		}
-		bool stream::eof() {
+		bool stream::eof() const {
 			return cursor >= end;
 		}
-		unsigned stream::tell() {
+		unsigned stream::tell() const {
 			return cursor - begin;
 		}
-		unsigned stream::size() {
+		unsigned stream::size() const {
 			return end - begin;
 		}
-		unsigned stream::left() {
+		unsigned stream::left() const {
 			return size() - tell();
+		}
+		const char *stream::data() const {
+			return begin;
 		}
 		bool stream::seek( unsigned offset ) {
 			cursor = (char *)(begin + offset);

@@ -77,18 +77,19 @@ namespace apathy
         stream( const void *ptr, unsigned len );
         stream( void *ptr, unsigned len );
 
-        bool good( unsigned off = 0 );
+        bool good( unsigned off = 0 ) const;
 
         bool open();
         bool close();
 
         bool rewind();
-        bool eof();
-        unsigned tell();
-        unsigned size();
-        unsigned left();
+        bool eof() const;
+        unsigned tell() const;
+        unsigned size() const;
+        unsigned left() const;
         bool seek( unsigned offset );
         bool offset( int offset );
+        const char *data() const;
 
         bool read( void *ptr, unsigned N );
         bool write( const void *ptr, unsigned N );
@@ -228,7 +229,7 @@ namespace apathy
 
         bool mmap();
         bool munmap();
-        stream chunk( size_t offset, size_t len );
+        stream chunk( size_t offset = 0, size_t len = ~0 );
 
         // metadata api
 
@@ -540,9 +541,23 @@ namespace apathy
     };
 
     // extras
+    /*
+    class uri : public std::string {
+    public:
+        bool is_file;
+        bool is_dir;
+
+        uri() : std::string()
+        {}
+
+        template<typename T>
+        uri( const T &t ) : std::string(t)
+        {}
+    }; */
 
     using uri = std::string;
     using uris = std::set<std::string>;
+    using set = uris;
     using hash = std::tuple< size_t /*filestamp*/, size_t /*filesize*/, std::string /*filename*/ >;
     class watcher;
     using watcher_callback = std::function<void(watcher &)>;
@@ -601,7 +616,7 @@ namespace apathy
     void watch( const std::string &uri_, const watcher_callback &callback );
 
     class uri2 {
-        
+
         std::string left_of( const std::string &input, const std::string &substring ) const;
         std::string right_of( const std::string &input, const std::string &substring ) const;
         std::string remove( const std::string &input, const std::string &substring ) const;
@@ -628,7 +643,7 @@ namespace apathy
 
     struct filesystem {
         // virt -> phys table
-        mapping table; 
+        mapping table;
         // phys -> size, offset
         table_of_contents toc;
         // supported protocols
@@ -659,10 +674,10 @@ namespace apathy
         std_io_filesystem( const std::string &path = "/", const std::string &mask = "*" ) : pathmask( path + mask ) {
             refresh();
         }
-        std::string name() const { 
+        std::string name() const {
             return "stdio";
         }
-        std::vector<std::string> protocols() const { 
+        std::vector<std::string> protocols() const {
             return { "file://", "" };
         }
         std::string read( const std::string &phys, size_t size = ~0, size_t offset = 0 ) const {
@@ -684,7 +699,7 @@ namespace apathy
         }
     };
 
-    // 
+    //
 
     class vfilesystem {
         std::deque< filesystem * > filesystems;
@@ -718,11 +733,11 @@ namespace apathy
             std::string data = read( virt );
             if( !data.empty() ) {
                 // T() construct
-                t = T( (const void *)data.c_str(), (size_t)data.size() ); 
+                t = T( (const void *)data.c_str(), (size_t)data.size() );
                 return true;
             } else {
                 // T() might construct a placeholder here
-                t = T( (const void *)0, (size_t)0 ); 
+                t = T( (const void *)0, (size_t)0 );
                 return false;
             }
         }
