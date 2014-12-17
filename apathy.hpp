@@ -267,7 +267,7 @@ namespace apathy
 
     private:
 
-        static std::vector<std::string> default_masks;
+        static const std::vector<std::string> default_masks;
     };
 
     /* virtual filesystem */
@@ -318,7 +318,7 @@ namespace apathy
          * @param p - path to construct */
         /* Constructor */
         template <class T>
-        explicit path( const T& p ) {
+        path( const T& p ) {
             std::stringstream ss;
             if( ss << p ) {
                 m_path = ss.str();
@@ -713,6 +713,11 @@ namespace apathy
 
         filesystem *locate( const std::string &virt ) const;
 
+    private:
+
+        vfilesystem( const vfilesystem & );
+        vfilesystem &operator=( const vfilesystem & );
+
     public:
 
          vfilesystem();
@@ -756,12 +761,6 @@ namespace apathy
         }
 
         std::string toc() const;
-
-    private:
-
-        vfilesystem( const vfilesystem & ) {};
-        vfilesystem &operator=( const vfilesystem & ) {};
-
     };
 }
 

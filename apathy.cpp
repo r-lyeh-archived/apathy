@@ -982,6 +982,7 @@ namespace giant
 	T swap( T out )
 	{
 		static union autodetect {
+			int word = 1;
 			char byte[ sizeof(int) ];
 			autodetect() {
 				assert(( "<giant/giant.hpp> says: wrong endianness detected!", (!byte[0] && is_big) || (byte[0] && is_little) ));
@@ -2408,7 +2409,7 @@ namespace apathy
 namespace
 {
 	struct captured_ostream {
-    captured_ostream() : copy(0) {}
+		captured_ostream() : copy(0) {}
 		std::streambuf *copy;
 		apathy::detail::sbb sb;
 	};
@@ -2628,7 +2629,7 @@ namespace {
 		/*
 		if( path.empty() ) return true;
 		if( path.back() != '/' ) path += "/";
-+
+
 		for( DIR *pdir = opendir( path.c_str() ); 0 != pdir; closedir( pdir ) ) {
 			for( struct dirent *pent = 0; pent = readdir( pdir ); ) {
 				std::string name = pent->name;
@@ -2944,11 +2945,10 @@ namespace apathy
 		return success;
 	}
 
-  std::vector<std::string> folder::default_masks = []()->std::vector<std::string> {
-    std::vector<std::string> d;
-    d.push_back("*");
-    return d;
-  }();
+	const std::vector<std::string> folder::default_masks = []()->std::vector<std::string> {
+		std::vector<std::string> d(1);
+		return d[0] = "*", d;
+	}();
 
 	folder::folder()
 	{}
@@ -3642,11 +3642,10 @@ namespace apathy {
 
 		namespace {
 			std::vector<std::string> &_cwd() {
-				static std::vector<std::string> list = []()->std::vector<std::string>{
-          std::vector<std::string> l;
-          l.push_back("./");
-          return l;
-        }();
+				static std::vector<std::string> list = []() -> std::vector<std::string> {
+				  std::vector<std::string> l( 1 );
+				  return l[0] = "./", l;
+				}();
 				return list;
 			}
 		}
@@ -3760,8 +3759,8 @@ namespace apathy {
 			std::string uri( notrails( normalize( uri_ ) ) );
 			if( 1 ) { //:( apathy::file(uri).is_dir() ) {
 				watcher wt;
-        wt.folder = uri;
-        wt.callback = callback;
+				wt.folder = uri;
+				wt.callback = callback;
 				wt.reload();
 			}
 		}
@@ -3991,28 +3990,28 @@ namespace apathy {
 #           undef close
 #       endif
 
-		stream::stream()
-		{
-      begin = end = cursor = rw = 0;
-    }
+		stream::stream() {
+			begin = end = cursor = rw = 0;
+		}
 
 		stream::stream( const void *from, const void *to ) {
 			begin = (const char *)( from < to ? from : to);
 			end = (const char *)( to > from ? to : from);
+			cursor = rw = 0;
 			open();
-      rw = 0;
 		}
 		stream::stream( const void *ptr, unsigned len ) {
 			begin = (const char *)ptr;
 			end = begin + len;
+			cursor = rw = 0;
 			open();
-      rw = 0;
 		}
-		stream::stream( void *ptr, unsigned len ) : rw(rw+1) {
+		stream::stream( void *ptr, unsigned len ) {
 			begin = (const char *)ptr;
 			end = begin + len;
+			cursor = rw = 0;
+			rw = (rw+1);
 			open();
-      rw = 0;
 		}
 
 		bool stream::good( unsigned off ) const {

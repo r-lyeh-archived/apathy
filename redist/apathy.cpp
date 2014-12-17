@@ -250,7 +250,8 @@ namespace apathy
 namespace
 {
     struct captured_ostream {
-        std::streambuf *copy = 0;
+        captured_ostream() : copy(0) {}
+        std::streambuf *copy;
         apathy::detail::sbb sb;
     };
 
@@ -469,7 +470,7 @@ namespace {
         /*
         if( path.empty() ) return true;
         if( path.back() != '/' ) path += "/";
-+
+
         for( DIR *pdir = opendir( path.c_str() ); 0 != pdir; closedir( pdir ) ) {
             for( struct dirent *pent = 0; pent = readdir( pdir ); ) {
                 std::string name = pent->name;
@@ -494,7 +495,6 @@ namespace apathy
     namespace {
         std::map< std::string, ifmstream > *chunks = 0;
     }
-
 
     file::file( const std::string &_pathfile ) :
         is_temp_name( _pathfile.size() ? false : true ),
@@ -786,6 +786,10 @@ namespace apathy
         return success;
     }
 
+    const std::vector<std::string> folder::default_masks = []()->std::vector<std::string> {
+        std::vector<std::string> d(1);
+        return d[0] = "*", d;
+    }();
 
     folder::folder()
     {}
@@ -855,8 +859,6 @@ namespace apathy
 // ls
 // lsr
 // touch
-
-
 
 /* A class for path manipulation */
 namespace apathy {
@@ -949,7 +951,7 @@ namespace apathy {
             return directory();
         }
 
-        append("..").normalize();
+        append(path("..")).normalize();
         if (m_path.size() == 0) {
             return *this;
         }
@@ -1315,7 +1317,7 @@ namespace apathy {
                 continue;
             }
 
-            path cpy = path(base).relative(ent->d_name).posix();
+            path cpy = path(base).relative(path(ent->d_name)).posix();
             results.push_back( cpy );
         }
 
@@ -1370,7 +1372,7 @@ namespace apathy {
             //try {
                 auto found = chunks->find( name() );
                 if( found == chunks->end() ) {
-                    chunks->insert( { name(), ifmstream() } );
+                    chunks->insert(std::pair<std::string, ifmstream>(name(), ifmstream()));
                     found = chunks->find( name() );
                 }
                 auto &fm = found->second;
@@ -1424,7 +1426,7 @@ namespace apathy {
         std::vector<std::string> split( const std::string &s, char sep ) {
             std::stringstream ss( s );
             std::vector<std::string> vector;
-            for( std::string join; std::getline( ss, join, sep ); vector.push_back( join ) ) 
+            for( std::string join; std::getline( ss, join, sep ); vector.push_back( join ) )
             {}
             return vector;
         }
@@ -1481,7 +1483,10 @@ namespace apathy {
 
         namespace {
             std::vector<std::string> &_cwd() {
-                static std::vector<std::string> list = {"./"};
+                static std::vector<std::string> list = []() -> std::vector<std::string> {
+                  std::vector<std::string> l( 1 );
+                  return l[0] = "./", l;
+                }();
                 return list;
             }
         }
@@ -1498,7 +1503,7 @@ namespace apathy {
             return _cwd().back(); //apathy::path::cwd().string();
         }
 
-    // 
+    //
 
 #       ifdef mkdir
 #           undef mkdir
@@ -1514,7 +1519,7 @@ namespace apathy {
 
         bool globr( const std::string &uri_, uris &files, uris &dirs, unsigned recurse ) {
             std::string uri = normalize(uri_), pretty = uri;
-            
+
             // pretty might be '/home/user/dir////', or 'c:\' at this point
             // ensure it does not convert into 'c:' (that would retrieve files at cwd instead of root files)
             if( pretty.size() && (pretty.back() != ':' && pretty.back() != '/') ) pretty += '/';
@@ -1594,7 +1599,9 @@ namespace apathy {
         void watch( const std::string &uri_, const watcher_callback &callback ) {
             std::string uri( notrails( normalize( uri_ ) ) );
             if( 1 ) { //:( apathy::file(uri).is_dir() ) {
-                watcher wt( {uri, callback} );
+                watcher wt;
+                wt.folder = uri;
+                wt.callback = callback;
                 wt.reload();
             }
         }
@@ -1637,7 +1644,7 @@ namespace apathy {
 
     // uri
 
-        uri2::uri2() 
+        uri2::uri2()
         {}
 
         uri2::uri2( const std::string &uri ) {
@@ -1654,7 +1661,7 @@ namespace apathy {
             file = path.substr( path.find_last_of("/") + 1 );
             path = remove(path, file);
         }
-            
+
         std::string uri2::left_of( const std::string &input, const std::string &substring ) const {
             std::string::size_type pos = input.find( substring );
             return pos == std::string::npos ? std::string() : input.substr(0, pos);
@@ -1665,7 +1672,7 @@ namespace apathy {
             return pos == std::string::npos ? std::string() : input.substr(pos + substring.size());
         }
 
-        std::string uri2::remove( const std::string &input, const std::string &substring ) const { 
+        std::string uri2::remove( const std::string &input, const std::string &substring ) const {
             return replace( input, substring, "" );
         }
 
@@ -1673,7 +1680,7 @@ namespace apathy {
 
         bool filesystem::mount( const std::string &phys, const std::string &virt ) {
             std::string mask = phys.substr(phys.find_first_of("*"));
-            std::string path = replace(phys, mask, ""); 
+            std::string path = replace(phys, mask, "");
             if( path.find_last_of('/') != std::string::npos ) path.resize( path.find_last_of('/') );
             if( mask.empty() ) mask = "*";
             if (path.empty()) path = "."; path += "/";
@@ -1758,7 +1765,7 @@ namespace apathy {
 
     // virtual filesystem
 
-        vfilesystem::vfilesystem() 
+        vfilesystem::vfilesystem()
         {}
 
         vfilesystem::~vfilesystem()  {
@@ -1786,7 +1793,7 @@ namespace apathy {
                 if( !phys.empty() ) {
                     std::string data = fs->read( phys );
                     return data;
-                }                
+                }
             }
             return std::string();
         }
@@ -1797,7 +1804,7 @@ namespace apathy {
                 toc += fs->print();
                 /*
                 for( auto &toc : fs.scan() ) {
-                    toc += toc.print();                    
+                    toc += toc.print();
                 }
                 */
             }
@@ -1824,22 +1831,27 @@ namespace apathy {
 #           undef close
 #       endif
 
-        stream::stream()
-        {}
+        stream::stream() {
+            begin = end = cursor = rw = 0;
+        }
 
         stream::stream( const void *from, const void *to ) {
             begin = (const char *)( from < to ? from : to);
             end = (const char *)( to > from ? to : from);
+            cursor = rw = 0;
             open();
         }
         stream::stream( const void *ptr, unsigned len ) {
             begin = (const char *)ptr;
             end = begin + len;
+            cursor = rw = 0;
             open();
         }
-        stream::stream( void *ptr, unsigned len ) : rw(rw+1) {
+        stream::stream( void *ptr, unsigned len ) {
             begin = (const char *)ptr;
             end = begin + len;
+            cursor = rw = 0;
+            rw = (rw+1);
             open();
         }
 
@@ -1894,7 +1906,6 @@ namespace apathy {
             return rw && ptr && good(max) && memcpy( (char *)( ( cursor += max ) - max ), ptr, max );
         }
 
-
         bool stream::read8( int8_t &c ) {
             return read( c ) ? true : false;
         }
@@ -1935,3 +1946,4 @@ namespace apathy {
 }
 
 //
+

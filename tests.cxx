@@ -229,14 +229,16 @@ desserts("absolute file globbing") {
 	files.clear();
 	dirs.clear();
 	dessert( apathy::glob("C:", files, dirs) );
-	 assert( files.find("apathy.cpp") != files.end() );
-	 assert( dirs.find("redist") != files.end() );
+	for(auto &file : files ) std::cout << file << std::endl;
+	assert( files.find("c:apathy.cpp") != files.end() );
+	assert( dirs.find("c:redist") != dirs.end()  );
 
 	files.clear();
 	dirs.clear();
 	dessert( apathy::glob("C:/", files, dirs) );
-	 assert( files.find("apathy.cpp") == files.end() );
-	 assert( dirs.find("redist") == files.end() );
+	for(auto &file : files ) std::cout << file << std::endl;
+	assert( files.find("c:/apathy.cpp") == files.end() );
+	assert( dirs.find("c:/redist") == dirs.end() );
 #endif
 }
 
