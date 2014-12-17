@@ -70,7 +70,7 @@ namespace apathy
 
     /* in-memory stream manipulation */
     struct stream {
-        const char *begin = 0, *end = 0, *cursor = 0, *rw = 0;
+        const char *begin, *end, *cursor, *rw;
 
         stream();
         stream( const void *from, const void *to );
@@ -152,7 +152,7 @@ namespace apathy
     struct pipe {
         enum state { FAIL, KEEP, STOP };
 
-        using filter = std::function<bool(DATA&,META&)>;
+        typedef std::function<bool(DATA&,META&)> filter;
         std::vector< filter > filters;
 
         // basics
@@ -260,10 +260,14 @@ namespace apathy
 
         folder();
 
-        void include( const std::string &path, const std::vector<std::string> &masks = {"*"}, bool recurse_subdirs = true );
-        void exclude( const std::string &path, const std::vector<std::string> &masks = {"*"}, bool recurse_subdirs = true );
+        void include( const std::string &path, const std::vector<std::string> &masks = default_masks, bool recurse_subdirs = true );
+        void exclude( const std::string &path, const std::vector<std::string> &masks = default_masks, bool recurse_subdirs = true );
 
         std::string str( const char *format1 = "\1\n" ) const;
+
+    private:
+
+        static std::vector<std::string> default_masks;
     };
 
     /* virtual filesystem */
@@ -314,7 +318,7 @@ namespace apathy
          * @param p - path to construct */
         /* Constructor */
         template <class T>
-        path( const T& p ) {
+        explicit path( const T& p ) {
             std::stringstream ss;
             if( ss << p ) {
                 m_path = ss.str();
@@ -555,12 +559,12 @@ namespace apathy
         {}
     }; */
 
-    using uri = std::string;
-    using uris = std::set<std::string>;
-    using set = uris;
-    using hash = std::tuple< size_t /*filestamp*/, size_t /*filesize*/, std::string /*filename*/ >;
+    typedef std::string uri;
+    typedef std::set<std::string> uris;
+    typedef uris set;
+    typedef std::tuple< size_t /*filestamp*/, size_t /*filesize*/, std::string /*filename*/ > hash;
     class watcher;
-    using watcher_callback = std::function<void(watcher &)>;
+    typedef std::function<void(watcher &)> watcher_callback;
 
     std::ostream &print( const uris &uris_, std::ostream &out = std::cout );
     std::string replace( const std::string &str_, const std::string &from, const std::string &to );
@@ -638,8 +642,8 @@ namespace apathy
         size_t size, offset; // size and offset in the container (if any)
     };
 
-    using mapping = std::map< std::string, std::string >;
-    using table_of_contents = std::map< std::string /* phys */, entry >;
+    typedef std::map< std::string, std::string > mapping;
+    typedef std::map< std::string /* phys */, entry > table_of_contents;
 
     struct filesystem {
         // virt -> phys table
@@ -677,8 +681,11 @@ namespace apathy
         std::string name() const {
             return "stdio";
         }
-        std::vector<std::string> protocols() const {
-            return { "file://", "" };
+        std::vector<std::string> protocols() const { 
+            std::vector<std::string> p;
+            p.push_back("file://");
+            p.push_back("");
+            return p;
         }
         std::string read( const std::string &phys, size_t size = ~0, size_t offset = 0 ) const {
             return apathy::file( phys ).read();
@@ -703,8 +710,6 @@ namespace apathy
 
     class vfilesystem {
         std::deque< filesystem * > filesystems;
-        vfilesystem( const vfilesystem & ) = delete;
-        vfilesystem &operator=( const vfilesystem & ) = delete;
 
         filesystem *locate( const std::string &virt ) const;
 
@@ -751,6 +756,12 @@ namespace apathy
         }
 
         std::string toc() const;
+
+    private:
+
+        vfilesystem( const vfilesystem & ) {};
+        vfilesystem &operator=( const vfilesystem & ) {};
+
     };
 }
 
