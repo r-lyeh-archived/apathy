@@ -29,12 +29,12 @@
 
 // -- 8< -- 8< -- 8< -- 8< -- 8< -- 8< -- 8< -- 8< -- 8< -- 8< -- 8< -- 8< -- 8< --
 
-desserts("tmpname()", "Make sure temp name works") {
+desserts("tmpname() - Make sure temp name works") {
     apathy::file f;
     dessert( !f.name().empty() );
 }
 
-desserts("good()", "Make sure data works") {
+desserts("good() - Make sure data works") {
     {
         apathy::file f( __FILE__ );
         dessert( f.exists() );
@@ -49,12 +49,12 @@ desserts("good()", "Make sure data works") {
     }
 }
 
-desserts("read()", "Make sure preload works") {
+desserts("read() - Make sure preload works") {
     std::string read = apathy::file( __FILE__ ).read();
     dessert( !read.empty() );
 }
 
-desserts("chunk()", "Mmap") {
+desserts("chunk() - Mmap") {
     apathy::file open( __FILE__ );
     apathy::stream st1 = open.chunk( 0, 16 );
     dessert( st1.good() );

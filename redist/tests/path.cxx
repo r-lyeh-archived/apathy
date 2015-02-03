@@ -27,7 +27,7 @@
  * - rlyeh ~~ listening to Alice in chains / Nutshell
  */
 
-desserts("cwd()", "And equivalent vs ==") {
+desserts("cwd() - And equivalent vs ==") {
     path cwd(path::cwd());
     path empty("");
     dessert(cwd != empty);
@@ -39,7 +39,7 @@ desserts("cwd()", "And equivalent vs ==") {
     dessert(path() == "");
 }
 
-desserts("operator=()", "Make sure assignment works as expected") {
+desserts("operator=() - Make sure assignment works as expected") {
     path cwd(path::cwd());
     path empty("");
     dessert(cwd != empty);
@@ -47,7 +47,7 @@ desserts("operator=()", "Make sure assignment works as expected") {
     dessert(cwd == empty);
 }
 
-desserts("operator+=()", "Make sure operator<< works correctly") {
+desserts("operator+=() - Make sure operator<< works correctly") {
     path root("/");
     root << "hello" << "how" << "are" << "you";
     dessert(root.string() == "/hello/how/are/you");
@@ -58,12 +58,12 @@ desserts("operator+=()", "Make sure operator<< works correctly") {
     dessert(root.string() == "/hello/5/how/3.14/are");
 }
 
-desserts("operator+()", "Make sure operator+ works correctly") {
+desserts("operator+() - Make sure operator+ works correctly") {
     path root("foo/bar");
     dessert((root + "baz").string() == "foo/bar/baz");
 }
 
-desserts("trim()", "Make sure trim actually strips off separators") {
+desserts("trim() - Make sure trim actually strips off separators") {
     path root("/hello/how/are/you////");
     dessert(root.trim().string() == "/hello/how/are/you");
     root = path("/hello/how/are/you");
@@ -72,7 +72,7 @@ desserts("trim()", "Make sure trim actually strips off separators") {
     dessert(root.trim().string() == "/hello/how/are/you");
 }
 
-desserts("directory()", "Make sure we can make paths into directories") {
+desserts("directory() - Make sure we can make paths into directories") {
     path root("/hello/how/are/you");
     dessert(root.directory().string() == "/hello/how/are/you/");
     root = path("/hello/how/are/you/");
@@ -81,7 +81,7 @@ desserts("directory()", "Make sure we can make paths into directories") {
     dessert(root.directory().string() == "/hello/how/are/you/");
 }
 
-desserts("relative()", "Evaluates relative urls correctly") {
+desserts("relative() - Evaluates relative urls correctly") {
     path a("/hello/how/are/you");
     path b("foo");
     dessert(a.relative(b).string() == "/hello/how/are/you/foo");
@@ -91,7 +91,7 @@ desserts("relative()", "Evaluates relative urls correctly") {
     dessert(a.relative(b).string() == "/fine/thank/you");
 }
 
-desserts("parent()", "Make sure we can find the parent directory") {
+desserts("parent() - Make sure we can find the parent directory") {
     path a("/hello/how/are/you");
     dessert(a.parent().string() == "/hello/how/are/");
     a = path("/hello/how/are/you");
@@ -114,7 +114,7 @@ desserts("parent()", "Make sure we can find the parent directory") {
     dessert(a.parent() == "bar/");
 }
 
-desserts("md()", "Make sure we recursively make directories") {
+desserts("md() - Make sure we recursively make directories") {
     path p("foo");
     dessert(!p.exists());
     p << "bar" << "baz" << "whiz";
@@ -127,7 +127,7 @@ desserts("md()", "Make sure we recursively make directories") {
     dessert(!path("foo").exists());
 }
 
-desserts("ls()", "Make sure we can list directories") {
+desserts("ls() - Make sure we can list directories") {
     path p("foo");
     p << "bar" << "baz" << "whiz";
     path::md(p);
@@ -154,7 +154,7 @@ desserts("ls()", "Make sure we can list directories") {
     dessert(!path("foo").exists());
 }
 
-desserts("rm()", "Make sure we can remove files we create") {
+desserts("rm() - Make sure we can remove files we create") {
     dessert(!path("foo").exists());
     path::touch("foo");
     dessert( path("foo").exists());
@@ -162,7 +162,7 @@ desserts("rm()", "Make sure we can remove files we create") {
     dessert(!path("foo").exists());
 }
 
-desserts("mv()", "Make sure we can move files / directories") {
+desserts("mv() - Make sure we can move files / directories") {
     /* We should be able to move it in the most basic case */
     path source("foo");
     path dest("bar");
@@ -191,7 +191,7 @@ desserts("mv()", "Make sure we can move files / directories") {
     dessert(!path("bar").exists());
 }
 
-desserts("normalize()", "Make sure we can normalize a path") {
+desserts("normalize() - Make sure we can normalize a path") {
     path p("foo///bar/a/b/../c");
     dessert(p.normalize() == "foo/bar/a/c");
 
@@ -211,7 +211,7 @@ desserts("normalize()", "Make sure we can normalize a path") {
     dessert(p.normalize() == "a/b/c/");
 }
 
-desserts("equivalent()", "Make sure equivalent paths work") {
+desserts("equivalent() - Make sure equivalent paths work") {
     path a("foo////a/b/../c/");
     path b("foo/a/c/");
     dessert(a.equivalent(b));
@@ -221,7 +221,7 @@ desserts("equivalent()", "Make sure equivalent paths work") {
     dessert(a.equivalent(b));
 }
 
-desserts("split()", "Make sure we can get segments out") {
+desserts("split() - Make sure we can get segments out") {
     path a("foo/bar/baz");
     std::vector<path::Segment> segments(a.split());
     dessert(segments.size() == 3);
@@ -236,7 +236,7 @@ desserts("split()", "Make sure we can get segments out") {
     dessert(a.split().size() == 5);
 }
 
-desserts("extension()", "Make sure we can accurately get th file extension") {
+desserts("extension() - Make sure we can accurately get th file extension") {
     /* Works in a basic way */
     dessert(path("foo/bar/baz.out").extension() == "out");
     /* Gets the outermost extension */
@@ -245,7 +245,7 @@ desserts("extension()", "Make sure we can accurately get th file extension") {
     dessert(path("foo/bar.baz/out").extension() == "");
 }
 
-desserts("stem()", "Make sure we can get the path stem") {
+desserts("stem() - Make sure we can get the path stem") {
     /* Works in a basic way */
     dessert(path("foo/bar/baz.out").stem() == path("foo/bar/baz"));
     /* Gets the outermost extension */
@@ -261,7 +261,7 @@ desserts("stem()", "Make sure we can get the path stem") {
     a = a.stem(); dessert(a == path("foo"));
 }
 
-desserts("glob()", "Make sure glob works") {
+desserts("glob() - Make sure glob works") {
     /* We'll touch a bunch of files to work with */
     path::md("foo");
     path::touch("foo/bar");
