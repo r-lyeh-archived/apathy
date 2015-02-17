@@ -1,4 +1,4 @@
-Apathy
+Apathy <a href="https://travis-ci.org/r-lyeh/wire"><img src="https://api.travis-ci.org/r-lyeh/wire.svg?branch=master" align="right" /></a>
 ======
 
 - Apathy is a stream/file/mmap/path/virtual-filesystem IO C++11 library.
