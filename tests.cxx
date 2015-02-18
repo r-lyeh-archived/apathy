@@ -49,7 +49,7 @@
 #define throws(...) ( [&](){ try { __VA_ARGS__; } catch( ... ) { return true; } return false; }() )
 
 /* API details following */
-#pragma once
+//#pragma once
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>

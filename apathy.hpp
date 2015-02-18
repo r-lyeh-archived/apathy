@@ -38,6 +38,7 @@
 #include <cctype>
 #include <stdint.h>
 #include <string.h>
+#include <stddef.h>
 
 #include <chrono>
 #include <deque>
@@ -148,32 +149,39 @@ namespace apathy
     };
 
     /* pipe manipulation */
-    template<typename DATA,typename META = std::string>
+    template< typename data, typename meta = std::string >
     struct pipe {
         enum state { FAIL, KEEP, STOP };
 
-        typedef std::function<bool(DATA&,META&)> filter;
+        typedef std::function<bool(data&,meta&)> filter;
         std::vector< filter > filters;
 
         // basics
         pipe &chain( const filter &filt ) {
             return filters.push_back( filt ), *this;
         }
-        bool process(DATA &data, META &meta = META()) const {
+        bool process( data &d, meta &m ) const {
             auto st = KEEP;
             for( auto fn : filters ) {
-                if( KEEP != ( st = (state)fn( data, meta ) ) )
+                if( KEEP != ( st = (state)fn( d, m ) ) )
                     break;
             }
             return FAIL != st;
+        }
+        bool process( data &d ) const {
+            meta m;
+            return process( d, m );
         }
 
         // aliases
         pipe &operator <<( const filter &filt ) {
             return chain( filt );
         }
-        bool operator()(DATA &data, META &meta = META()) const {
-            return process( data, meta );
+        bool operator()( data &d, meta &m ) const {
+            return process( d, m );
+        }
+        bool operator()( data &d ) const {
+            return process( d );
         }
     };
 
@@ -292,11 +300,11 @@ namespace apathy
             inline friend istream &operator>>( istream &is, Segment& self ) {
                 char separator_( separator );
                 return std::getline( is, self.segment, separator_ );
-            }
+            } /*
             template<typename ostream>
             inline friend ostream &operator<<( ostream &os, const Segment &self ) {
                 return os << self.segment, os;
-            }
+            } */
         };
 
         /**********************************************************************
@@ -306,6 +314,7 @@ namespace apathy
         /* Default constructor
          *
          * Points to current directory */
+
         path( const std::string &path_ = std::string() ): m_path(path_)
         {}
 
@@ -323,6 +332,11 @@ namespace apathy
             if( ss << p ) {
                 m_path = ss.str();
             }
+        }
+
+        template <size_t N>
+        path( const char (&p)[N] ) {
+            m_path = p;
         }
 
         /**********************************************************************
@@ -534,9 +548,8 @@ namespace apathy
         static std::vector<path> glob( const std::string& pattern );
 
         /* So that we can write paths out to ostreams */
-        template<typename ostream>
-        inline friend ostream& operator<<( ostream& stream, const path &self ) {
-            return stream << self.m_path, stream;
+        inline friend std::ostream& operator<<( std::ostream& os, const path &self ) {
+            return os << self.m_path, os;
         }
 
     private:

@@ -27,11 +27,6 @@
 
  * todo:
  *
- * platform = { roots[], separators[] }
- * unix = { {"/*"}, {"/"} }
- * win = { {"?:\*"}, {"\\"} }
- * http = { {"http://*"}, {'/', '&', '?'} }
- *
  * absolute
  * cd
  *
@@ -54,18 +49,12 @@
  * parent
  * root
  *
- * operations
- * ls
- * lsr
- *
- * virtual filesystem,
- * watcher
  * piped-factories: { "http://", "file://", "zip://file://" }
 
-// @todo
-// interleaving
-// utf8 path/file cases
-// embed zip tocs
+ * @todo
+ * interleaving
+ * utf8 path/file cases
+ * embed zip tocs
 
  * - rlyeh ~~ listening to Alice in chains / Nutshell
  */
@@ -91,6 +80,7 @@
 #include <istream>
 #include <iterator>
 #include <map>
+#include <memory>
 #include <set>
 #include <sstream>
 #include <string>
@@ -110,12 +100,13 @@
 #   pragma comment(lib, "Shlwapi.lib")
 #   define $win32(...) __VA_ARGS__
 #   define $welse(...)
-#   define open _open
-#   define close _close
-#   define mkdir(path_,mode) _mkdir( path(path_).os().c_str() )
-	typedef int mode_t;
+#   ifdef _MSC_VER
+#       define open _open
+#       define close _close
+#       define mkdir(path_,mode) _mkdir( path(path_).os().c_str() )
+		typedef int mode_t;
+#   endif
 #else
-#   include <dirent.h>
 #   include <sys/time.h>
 #   include <unistd.h>
 #   include <utime.h>
@@ -125,7 +116,7 @@
 
 // embed dependencies
 
-#ifdef _WIN32
+#ifdef _MSC_VER
 
 //#line 1 "dirent.hpp"
 #ifndef DIRENT_H
@@ -935,10 +926,12 @@ dirent_set_errno(
 #endif /*DIRENT_H*/
 
 
+#else
+#   include <dirent.h>
 #endif
 
 //#line 1 "giant.hpp"
-#pragma once
+//#pragma once
 
 #include <cassert>
 #include <algorithm>
@@ -2495,43 +2488,48 @@ namespace ostream
 //--------------
 
 namespace {
+	/*
 	void sleep( double seconds ) {
 		std::chrono::microseconds duration( (int)(seconds * 1000000) );
 		std::this_thread::sleep_for( duration );
-	}
+	}*/
+	/*
 	std::string replace( const std::string &on, const std::string &find, const std::string &repl ) {
 		std::string s = on;
-		for( unsigned found = 0; ( found = s.find( find, found ) ) != std::string::npos ; ) {
+		for( auto found = std::string::npos - std::string::npos; ( found = s.find( find, found ) ) != std::string::npos ; ) {
 			s.replace( found, find.length(), repl );
 			found += repl.length();
 		}
 		return s;
 	}
+	*/
+	/*
 	std::string sanitize( const std::string &path ) {
 		$win32( std::string from = "/", to = "\\" );
 		$welse( std::string from = "\\", to = "/" );
 		return replace(path, from, to );
-	}
+	} */
 	const std::string get_temp_path() {
 		// \st823.1 becomes .\st823.1, or w:\users\user9612\temp~1\st823.1
 		$win32( static const std::string temp = getenv("TEMP") ? getenv("TEMP") : ( getenv("TMP") ? getenv("TMP") : "" ) );
 		$welse( static const std::string temp );
 		return temp;
 	}
-	const char &at( const std::string &self, unsigned pos ) {
+	/*
+	const char &at( const std::string &self, signed pos ) {
 		signed size = (signed)(self.size());
 		if( size )
 			return self[ pos >= 0 ? pos % size : size - 1 + ((pos+1) % size) ];
 		static std::map< const std::string *, char > map;
 		return ( ( map[ &self ] = map[ &self ] ) = '\0' );
 	}
-	char &at( std::string &self, unsigned pos ) {
+	char &at( std::string &self, signed pos ) {
 		signed size = (signed)(self.size());
 		if( size )
 			return self[ pos >= 0 ? pos % size : size - 1 + ((pos+1) % size) ];
 		static std::map< const std::string *, char > map;
 		return ( ( map[ &self ] = map[ &self ] ) = '\0' );
-	}
+	} */
 	std::vector< std::string > tokenize( const std::string &self, const std::string &delimiters ) {
 		std::string map( 256, '\0' );
 		for( auto &ch : delimiters )
@@ -2548,7 +2546,7 @@ namespace {
 		struct local {
 			static bool match( const char *pattern, const char *str ) {
 				if( *pattern=='\0' ) return !*str;
-				if( *pattern=='*' )  return match(pattern+1, str) || *str && match(pattern, str+1);
+				if( *pattern=='*' )  return match(pattern+1, str) || (*str && match(pattern, str+1));
 				if( *pattern=='?' )  return *str && (*str != '.') && match(pattern+1, str+1);
 				return (*str == *pattern) && match(pattern+1, str+1);
 		} };
@@ -2566,7 +2564,7 @@ namespace {
 			HANDLE hFind = FindFirstFileA(spath.c_str(), &fdFile);
 
 			if( hFind == INVALID_HANDLE_VALUE )
-				return "path not found", false;
+				return /*"path not found", */false;
 
 			do {
 				// Ignore . and .. folders
@@ -2652,7 +2650,7 @@ namespace {
 namespace apathy
 {
 	namespace {
-		std::map< std::string, ifmstream > *chunks = 0;
+		std::map< std::string, fmstream > *chunks = 0;
 	}
 
 	file::file( const std::string &_pathfile ) :
@@ -2662,7 +2660,7 @@ namespace apathy
 		static bool once = true;
 		if( once ) {
 			once = false;
-			static std::map< std::string, ifmstream > map;
+			static std::map< std::string, fmstream > map;
 			chunks = &map;
 			chunk(0,0);
 		}
@@ -3052,7 +3050,7 @@ namespace apathy {
 		if (pos != std::string::npos) {
 			return m_path.substr(pos + 1);
 		}
-		return "";
+		return std::string();
 	}
 
 	std::string path::extension() const {
@@ -3062,7 +3060,7 @@ namespace apathy {
 		if (pos != std::string::npos) {
 			return name.substr(pos + 1);
 		}
-		return "";
+		return std::string();
 	}
 
 	path path::stem() const {
@@ -3232,7 +3230,7 @@ namespace apathy {
 		if (p != std::string::npos) {
 			m_path.erase(p + 1, m_path.size());
 		} else {
-			m_path = "";
+			m_path = std::string();
 		}
 		return *this;
 	}
@@ -3497,13 +3495,13 @@ namespace apathy {
 			where = where.substr( 0, found +1 );
 		} else {
 			mask = pattern;
-			where = "";
+			where = std::string();
 		}
 
 		struct local {
 			static bool match( const char *pattern, const char *str ) {
 				if( *pattern=='\0' ) return !*str;
-				if( *pattern=='*' )  return match(pattern+1, str) || *str && match(pattern, str+1);
+				if( *pattern=='*' )  return match(pattern+1, str) || (*str && match(pattern, str+1));
 				if( *pattern=='?' )  return *str && (*str != '.') && match(pattern+1, str+1);
 				return (*str == *pattern) && match(pattern+1, str+1);
 			}
@@ -3531,14 +3529,14 @@ namespace apathy {
 			//try {
 				auto found = chunks->find( name() );
 				if( found == chunks->end() ) {
-					chunks->insert(std::pair<std::string, ifmstream>(name(), ifmstream()));
+					(*chunks)[ name() ];
 					found = chunks->find( name() );
 				}
 				auto &fm = found->second;
 				if( offset < size() && length ) {
-					fm.open( name().c_str(), length == ~0 ? 0 : length, offset );
+					fm.open( name().c_str(), length == ~0u ? 0 : length, offset );
 					if( fm.is_open() ) {
-						return stream( fm.data(), length == ~0 ? fm.size() : length );
+						return stream( fm.data(), length == ~0u ? fm.size() : length );
 					}
 				}
 				/*
@@ -3610,7 +3608,7 @@ namespace apathy {
 			struct local {
 				static bool match( const char *pattern, const char *str ) {
 					if( *pattern=='\0' ) return !*str;
-					if( *pattern=='*' )  return match(pattern+1, str) || *str && match(pattern, str+1);
+					if( *pattern=='*' )  return match(pattern+1, str) || (*str && match(pattern, str+1));
 					if( *pattern=='?' )  return *str && (*str != '.') && match(pattern+1, str+1);
 					return (*str == *pattern) && match(pattern+1, str+1);
 			} };
@@ -3628,7 +3626,7 @@ namespace apathy {
 		}
 
 		std::string notrails( const std::string &uri ) {
-			assert( ("uri must be normalized", uri.find_first_of('\\') + 1 == 0) );
+			assert( "uri must be normalized" && uri.find_first_of('\\') + 1 == 0 );
 			unsigned from = uri.size() > 2 && uri[0] == '.' && uri[1] == '/' ? 3 : 0;
 			unsigned to = uri.find_last_of('/') + 1;
 			return uri.substr( from, uri.size() - from + to );
@@ -3852,8 +3850,8 @@ namespace apathy {
 					bool recurse_subdirs = (mask.find("**") != std::string::npos);
 					auto found = recurse_subdirs ? lsr( mask ) : ls( mask );
 					for( const auto &uri : found ) {
-						std::string virt( virt + replace( replace(uri, cwd(), "" ) ,phys,"") );
-						table[ virt ] = uri;
+						std::string virt2( virt + replace( replace(uri, cwd(), "" ) ,phys,"") );
+						table[ virt2 ] = uri;
 					}
 				popd();
 				return found.size() ? true : false;
