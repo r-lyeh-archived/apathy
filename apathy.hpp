@@ -589,7 +589,8 @@ namespace apathy
     bool has_changed( const std::string &uri );
     bool matches( const std::string &text, const std::string &pattern );
 
-    std::string normalize( const std::string &uri_ );
+    std::string normalize( const std::string &uri );
+    std::string tokenize( const std::string &uri );
     std::string notrails( const std::string &uri );
 
     void chdir( const std::string &path );
