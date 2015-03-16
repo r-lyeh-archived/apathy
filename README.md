@@ -41,6 +41,9 @@ Apathy <a href="https://travis-ci.org/r-lyeh/apathy"><img src="https://api.travi
 @todoc
 ```
 
+## Rebuild
+- Follow instructions on redist branch (`git checkout redist`)
+
 ## Licenses
 - [Apathy](https://github.com/r-lyeh/apathy), BOOST licensed.
 - [Apathy](https://github.com/dlecocq/apathy) by Dan Lecocq, MIT licensed.
