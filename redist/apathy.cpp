@@ -1459,6 +1459,14 @@ namespace apathy {
         std::string normalize( const std::string &uri_ ) {
             std::string uri( uri_ );
             for( auto &ch : uri ) {
+                if( ch == '\\' ) ch = '/';
+            }
+            return uri;
+        }
+
+        std::string tokenize( const std::string &uri_ ) {
+            std::string uri( uri_ );
+            for( auto &ch : uri ) {
                 /**/ if( ch >= 'A' && ch <= 'Z' ) ch = (ch - 'A') + 'a';
                 else if( ch == ' '  ) ch = '_';
                 else if( ch == '\\' ) ch = '/';
