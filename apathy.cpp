@@ -3627,7 +3627,7 @@ namespace apathy {
 
 		std::string notrails( const std::string &uri ) {
 			assert( "uri must be normalized" && uri.find_first_of('\\') + 1 == 0 );
-			unsigned from = uri.size() > 2 && uri[0] == '.' && uri[1] == '/' ? 3 : 0;
+			unsigned from = uri.size() > 2 && uri[0] == '.' && uri[1] == '/' ? 2 : 0;
 			unsigned to = uri.find_last_of('/') + 1;
 			return uri.substr( from, uri.size() - from + to );
 		}
