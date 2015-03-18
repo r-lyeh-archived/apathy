@@ -42,7 +42,7 @@ Apathy <a href="https://travis-ci.org/r-lyeh/apathy"><img src="https://api.travi
 ```
 
 ## Rebuild
-- Follow instructions on redist branch (`git checkout redist`)
+- Follow instructions on redist branch [redist branch.](https://github.com/r-lyeh/apathy/tree/redist)
 
 ## Licenses
 - [Apathy](https://github.com/r-lyeh/apathy), BOOST licensed.
