@@ -1,9 +1,6 @@
 /*
  * Apathy is a lightweight stream/file/mmap/path/virtual-filesystem IO C++11 library.
- * Copyright (c) 2011,2012,2013,2014 Mario 'rlyeh' Rodriguez
- *
- * Distributed under the Boost Software License, Version 1.0.
- * (See license copy at http://www.boost.org/LICENSE_1_0.txt)
+ * Copyright (c) 2011,2012,2013,2014 Mario 'rlyeh' Rodriguez, zlib/libpng licensed.
 
  * Copyright (c) 2013 Dan Lecocq
  *
@@ -119,7 +116,7 @@
 #ifdef _MSC_VER
 #   include "deps/dirent/dirent.hpp"
 #else
-#   include <dirent.h> 
+#   include <dirent.h>
 #endif
 #include "deps/giant/giant.hpp"
 #include "deps/fmstream/fmstream.h"
@@ -129,7 +126,7 @@
 #   ifndef _CRT_SECURE_NO_WARNINGS
 #       define _CRT_SECURE_NO_WARNINGS
 #   endif
-#   pragma warning(disable: 4996) 
+#   pragma warning(disable: 4996)
 #endif
 
 // api
