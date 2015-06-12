@@ -1,6 +1,6 @@
 /*
  * Apathy is a lightweight stream/file/mmap/path/virtual-filesystem IO C++11 library.
- * Copyright (c) 2011,2012,2013,2014 Mario 'rlyeh' Rodriguez, zlib/libpng license.
+ * Copyright (c) 2011,2012,2013,2014 Mario 'rlyeh' Rodriguez, zlib/libpng licensed.
 
  * Copyright (c) 2013 Dan Lecocq
  *
@@ -3533,7 +3533,7 @@ namespace apathy {
 				if( offset < size() && length ) {
 					fm.open( name().c_str(), length == ~0u ? 0 : length, offset );
 					if( fm.is_open() ) {
-						return stream( fm.data(), length == ~0u ? fm.size() : length );
+						return stream( fm.data(), unsigned( length == ~0u ? fm.size() : length ) );
 					}
 				}
 				/*
@@ -3632,8 +3632,8 @@ namespace apathy {
 
 		std::string notrails( const std::string &uri ) {
 			assert( "uri must be normalized" && uri.find_first_of('\\') + 1 == 0 );
-			unsigned from = uri.size() > 2 && uri[0] == '.' && uri[1] == '/' ? 2 : 0;
-			unsigned to = uri.find_last_of('/') + 1;
+			size_t from = uri.size() > 2 && uri[0] == '.' && uri[1] == '/' ? 2 : 0;
+			size_t to = uri.find_last_of('/') + 1;
 			return uri.substr( from, uri.size() - from + to );
 		}
 
