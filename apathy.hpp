@@ -21,7 +21,8 @@
 
 #pragma once
 
-#define APATHY_VERSION "1.0.0" /* (2015/11/20): Simplified API, moved vfs/ostream to libraries apart
+#define APATHY_VERSION "1.0.1" /* (2015/12/02): Add resize() function
+#define APATHY_VERSION "1.0.0" // (2015/11/20): Simplified API, moved vfs/ostream to libraries apart
 #define APATHY_VERSION "0.0.0" // (2013/04/16): Initial commit */
 
 #ifndef APATHY_USE_MMAP
@@ -175,6 +176,8 @@ namespace apathy {
     bool overwrite( const file &uri, const std::string &data );
     bool overwrite( const file &uri, const void *data, size_t size );
 
+    bool resize( const file &uri, size_t new_size );
+
     // Info API (RO)
 
     bool   exists( const pathfile &uri );
@@ -264,14 +267,14 @@ namespace apathy {
 // select ms or posix/mingw route
 
 #ifndef _WIN32
-#   ifdef APATHY_USE_MMAP
+#   if APATHY_USE_MMAP
 #       include <sys/mman.h>
 #   endif
 #   include <dirent.h>
 #   include <utime.h>
 #   include <unistd.h>
 #else
-#   ifdef APATHY_USE_MMAP
+#   if APATHY_USE_MMAP
 
 //#line 1 "mman.h"
 /* References:
@@ -1307,6 +1310,8 @@ namespace apathy {
                 return 0;
             }
             return info.st_size;
+            //std::ifstream ifs( uri, std::ios::binary | std::ios::ate );
+            //return ifs.good() ? ifs.tellg() : 0;
         }
         return 0;
     }
@@ -1314,8 +1319,8 @@ namespace apathy {
     // true if exist
     inline bool exists( const pathfile &uri ) {
         if( uri.is_file() ) {
-            $apathy32( return 0 == _access( uri,    0 ) );
-            $apathyXX( return 0 ==  access( uri, F_OK ) );
+            $apathy32( return 0 == _access( uri, 0      /*04*/ ) );
+            $apathyXX( return 0 ==  access( uri, F_OK /*R_OK*/ ) );
         }
         if( uri.is_path() ) {
             if( !uri.empty() ) {
@@ -1449,6 +1454,7 @@ namespace apathy {
         return found != uri ? found : uri;
     }
 
+#if APATHY_USE_MMAP
     // memory-map data from file
     inline void *map( const file &uri, size_t size, size_t offset ) {
         int fd = $apathy32(_open) $apathyXX(::open) ( uri, O_RDONLY );
@@ -1471,6 +1477,16 @@ namespace apathy {
     inline void unmap( void *ptr, size_t size ) {
         munmap( ptr, size );
     }
+#else
+    // memory-map data from file
+    inline void *map( const file &uri, size_t size, size_t offset ) {
+        return 0;
+    }
+
+    // unmemory-map data from file
+    inline void unmap( void *ptr, size_t size ) {
+    }
+#endif
 
     // read data from file
     inline bool read( const file &uri, std::string &buffer ) {
@@ -1750,6 +1766,26 @@ namespace apathy {
         return append( uri, content.c_str(), content.size() );
     }
 
+    // resize file to size
+    inline bool resize( const file &uri, size_t new_size ) {
+        bool ok = false;
+        FILE *fp = fopen(uri, "a+b");
+        if( fp ) {
+            int fd = fileno(fp);
+            if( fd != -1 ) {
+                $apathyXX(
+                    ok = 0 == ftruncate( fd, (off_t)new_size );
+                )
+                $apathy32(
+                    ok = 0 == _chsize_s( fd, new_size );
+                )
+            }
+            fflush(fp);
+            fclose(fp);
+        }
+        return ok;
+    }
+
     // directory listing
     inline bool ls( std::vector<std::string> &list, const path &uri, const std::string &masks ) {
         return glob( list, uri, wildcards(masks), false, false ) > 0;
@@ -2009,7 +2045,7 @@ int main() {
     suite( "test file infos" ) {
         auto self = normalize(__FILE__);
         test( exists(self) );
-        test( size(self) > 0 );
+        test( apathy::size(self) > 0 );
         test( !is_empty(self) );
         test(  is_file(self) );
         test( !is_path(self) );
@@ -2035,7 +2071,7 @@ int main() {
     suite( "test path infos" ) {
         auto self = "././";
         test( exists(self) );
-        test( size(self) > 0 );
+        test( apathy::size(self) > 0 );
         test( !is_empty(self) );
         test( !is_file(self) );
         test(  is_path(self) );
@@ -2115,6 +2151,20 @@ int main() {
         test( !exists(p/p/f) );
     }
 
+    suite( "resize operation" ) {
+        file f = "$tmp1";
+        test( !exists(f) );
+        test( resize(f, 1000) );
+        test( exists(f) );
+        test( apathy::size(f) == 1000 );
+        test( overwrite(f, "hello12hello12") );
+        test( resize(f, 5) );
+        test( apathy::size(f) == 5 );
+        test( read(f) == "hello" );
+        test( rm(f) );
+        test( !exists(f) );
+    }
+
     suite( "test cd/md/rd/pushd/popd/cwd dir stack" ) {
         path dir = cwd();
         path subdir = "tests/";
@@ -2137,7 +2187,7 @@ int main() {
     suite( "test touch/modification date" ) {
         auto self = normalize(__FILE__);
         test( exists(self) );
-        test( size(self) > 0 );
+        test( apathy::size(self) > 0 );
 
         test( !touched(self) );
         test(  touch(self) );

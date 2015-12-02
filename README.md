@@ -135,6 +135,7 @@ namespace apathy {
 - [Dirent](http://softagalleria.net/dirent.php) by Toni Ronkko, MIT licensed.
 
 ### Changelog
+- v1.0.1 (2015/12/02): Add resize() function
 - v1.0.0 (2015/11/20): Simplified API, moved vfs/ostream to libraries apart
 - v0.0.0 (2013/04/16): Initial commit
 
