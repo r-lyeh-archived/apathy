@@ -21,7 +21,8 @@
 
 #pragma once
 
-#define APATHY_VERSION "1.0.1" /* (2015/12/02): Add resize() function
+#define APATHY_VERSION "1.0.2" /* (2016/02/02): Fix ext() with dotless files; Fix m/c/adate() on invalid pathfiles; Handle proper Win32 stat() case
+#define APATHY_VERSION "1.0.1" // (2015/12/02): Add resize() function
 #define APATHY_VERSION "1.0.0" // (2015/11/20): Simplified API, moved vfs/ostream to libraries apart
 #define APATHY_VERSION "0.0.0" // (2013/04/16): Initial commit */
 
@@ -195,7 +196,7 @@ namespace apathy {
     path     stem( const pathfile &uri ); // d:/prj/test.png -> d:/prj/
     file     name( const pathfile &uri ); // d:/prj/test.png -> test.png
     file     base( const     file &uri ); // d:/prj/test.png -> test
-    file      ext( const     file &uri ); // d:/prj/test.png -> .png
+    pathfile  ext( const     file &uri ); // d:/prj/test.png -> .png
 
     // Info API (RW)
 
@@ -288,6 +289,19 @@ namespace apathy {
 
 namespace apathy {
 
+    inline int stat32( const pathfile &uri, struct stat *info ) {
+        $apathy32(
+        /* make win32-friendly stat() call (no trailing slashes) */
+        if( uri.is_path() ) {
+            path uri_ = uri;
+            while( (!uri_.empty()) && uri_.back() == '/' ) {
+                uri_.resize( uri_.size() - 1 );
+            }
+            return stat( uri_, info );
+        });
+        return stat( uri, info );
+    }
+
     // size in bytes
     inline size_t size( const pathfile &uri ) {
         if( uri.is_path() ) {
@@ -295,12 +309,10 @@ namespace apathy {
         }
         if( uri.is_file() ) {
             struct stat info;
-            if( stat( uri, &info ) < 0 ) {
+            if( stat32( uri, &info ) < 0 ) {
                 return 0;
             }
             return info.st_size;
-            //std::ifstream ifs( uri, std::ios::binary | std::ios::ate );
-            //return ifs.good() ? ifs.tellg() : 0;
         }
         return 0;
     }
@@ -314,7 +326,7 @@ namespace apathy {
         if( uri.is_path() ) {
             if( !uri.empty() ) {
                 struct stat info;
-                if (stat(uri, &info) < 0) {
+                if( stat32(uri, &info) < 0 ) {
                     return false;
                 }
             }
@@ -326,7 +338,7 @@ namespace apathy {
     // true if directory
     inline bool is_path( const pathfile &uri ) {
         struct stat info;
-        if( stat( uri, &info ) < 0 ) {
+        if( stat32( uri, &info ) < 0 ) {
             return false;
         }
         return S_IFDIR == ( info.st_mode & S_IFMT );
@@ -335,7 +347,7 @@ namespace apathy {
     // true if file
     inline bool is_file( const pathfile &uri ) {
         struct stat info;
-        if( stat( uri, &info ) < 0 ) {
+        if( stat32( uri, &info ) < 0 ) {
             return false;
         }
         return S_IFREG == ( info.st_mode & S_IFMT );
@@ -369,8 +381,8 @@ namespace apathy {
     // access date (last time the file was read)
     inline time_t adate( const pathfile &uri ) {
         struct stat info;
-        if( stat( uri, &info ) < 0 ) {
-            return std::time(0);
+        if( stat32( uri, &info ) < 0 ) {
+            return 0;
         }
         return info.st_atime;
     }
@@ -378,8 +390,8 @@ namespace apathy {
     // modification date (last time file contents were modified)
     inline time_t mdate( const pathfile &uri ) {
         struct stat info;
-        if( stat( uri, &info ) < 0 ) {
-            return std::time(0);
+        if( stat32( uri, &info ) < 0 ) {
+            return 0;
         }
         return info.st_mtime;
     }
@@ -387,8 +399,8 @@ namespace apathy {
     // change date (last time meta data of file was changed)
     inline time_t cdate( const pathfile &uri ) {
         struct stat info;
-        if( stat( uri, &info ) < 0 ) {
-            return std::time(0);
+        if( stat32( uri, &info ) < 0 ) {
+            return 0;
         }
         return info.st_ctime;
     }
@@ -396,7 +408,7 @@ namespace apathy {
     // user id
     inline int uid( const pathfile &uri ) {
         struct stat info;
-        if( stat( uri, &info ) < 0 ) {
+        if( stat32( uri, &info ) < 0 ) {
             return 0;
         }
         return info.st_uid;
@@ -405,7 +417,7 @@ namespace apathy {
     // group id
     inline int gid( const pathfile &uri ) {
         struct stat info;
-        if( stat( uri, &info ) < 0 ) {
+        if( stat32( uri, &info ) < 0 ) {
             return 0;
         }
         return info.st_gid;
@@ -437,10 +449,10 @@ namespace apathy {
     }
 
     // extension of name
-    inline file ext( const file &uri_ ) {
+    inline pathfile ext( const file &uri_ ) {
         file uri = name(uri_);
-        file found = uri.substr( uri.find_last_of('.') );
-        return found != uri ? found : uri;
+        file found = uri.substr( uri.find_last_of('.') + 1 );
+        return found != uri ? "." + found : "";
     }
 
 #if APATHY_USE_MMAP
@@ -480,7 +492,7 @@ namespace apathy {
     // read data from file
     inline bool read( const file &uri, std::string &buffer ) {
         struct stat info;
-        if( stat( uri, &info ) < 0 ) {
+        if( stat32( uri, &info ) < 0 ) {
             return buffer.clear(), false;
         }
         size_t len = info.st_size;
@@ -537,13 +549,13 @@ namespace apathy {
     // change modification date
     inline bool touch( const pathfile &uri, const std::time_t &date ) {
         struct stat info;
-        if( stat( uri, &info ) < 0 ) {
+        if( stat32( uri, &info ) < 0 ) {
             return false;
         }
 
         struct utimbuf tb;
         tb.actime = info.st_atime;  /* keep atime unchanged */
-        tb.modtime = date;              /* set mtime to given time */
+        tb.modtime = date;          /* set mtime to given time */
 
         return utime( uri, &tb ) != -1 ? true : false;
     }
@@ -561,7 +573,7 @@ namespace apathy {
 
         // fat32 minimal lapse is ~2 seconds; others filesystems are close to zero
         double diff = std::difftime( modtime, curtime );
-        bool changed = ( diff > 0 ? diff : -diff ) > 2.5;
+        bool changed = ( diff > 0 ? diff : -diff ) > 0;
 
         if( changed ) {
             cache[ uri ] = curtime;
@@ -1056,10 +1068,15 @@ int main() {
         test( base(self) == "apathy" );
         test( name(self) == "apathy.hpp" );
         test(  ext(self) == ".hpp" );
+
+        test(  base("LICENSE") == "LICENSE" );
+        test(  base("LICENSE.md") == "LICENSE" );
+        test(   ext("LICENSE") == "" );
+        test(   ext("LICENSE.md") == ".md" );
     };
 
     suite( "test path infos" ) {
-        auto self = "././";
+        path self = "././";
         test( exists(self) );
         test( apathy::size(self) > 0 );
         test( !is_empty(self) );
@@ -1115,6 +1132,9 @@ int main() {
         test( overwrite(f, "test") );
 
         test( exists( f ) );
+        test( !exists(p) );
+        test( !exists(p/p) );
+        test( !exists(p/p/f) );
         test( cp(f, p/p/f) );
         test( exists(f) );
         test( exists(p) );
@@ -1181,7 +1201,6 @@ int main() {
 
         test( !touched(self) );
         test(  touch(self) );
-        $apathy32( sleep( 3.0 ) );
         test(  touched(self) );
         test( !touched(self) );
         test( !touched(self) );
