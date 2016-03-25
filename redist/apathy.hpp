@@ -21,7 +21,8 @@
 
 #pragma once
 
-#define APATHY_VERSION "1.0.2" /* (2016/02/02): Fix ext() with dotless files; Fix m/c/adate() on invalid pathfiles; Handle proper Win32 stat() case
+#define APATHY_VERSION "1.0.3" /* (2016/03/25): Fix MingW compilation issues
+#define APATHY_VERSION "1.0.2" // (2016/02/02): Fix ext() with dotless files; Fix m/c/adate() on invalid pathfiles; Handle proper Win32 stat() case
 #define APATHY_VERSION "1.0.1" // (2015/12/02): Add resize() function
 #define APATHY_VERSION "1.0.0" // (2015/11/20): Simplified API, moved vfs/ostream to libraries apart
 #define APATHY_VERSION "0.0.0" // (2013/04/16): Initial commit */
@@ -38,7 +39,7 @@
 #include <fcntl.h>     // O_RDONLY, O_CREAT
 #include <string.h>    // memcpy, strerror
 #include <sys/stat.h>  // stat, lstat
-#include <sys/types.h> //
+#include <sys/types.h> // mode_t
 
 #include <fstream>
 #include <iostream>
@@ -282,7 +283,9 @@ namespace apathy {
 #   include <direct.h>    // _mkdir, _rmdir
 #   include <sys/utime.h> // (~) utime.h
 #   include <io.h>        // (~) unistd.h
-    typedef int mode_t;
+#   ifdef _MSC_VER
+        typedef int mode_t;
+#   endif
 #endif
 
 // implementation
