@@ -21,7 +21,8 @@
 
 #pragma once
 
-#define APATHY_VERSION "1.0.3" /* (2016/03/25): Fix MingW compilation issues
+#define APATHY_VERSION "1.0.4" /* (2016/04/11): Easier ls(), lsd(), lsf() API; allow premake4 style wildcards (ie, lsd("*t;**z") - glob all *t dirs, and *z dirs with subdirs )
+#define APATHY_VERSION "1.0.3" // (2016/03/25): Fix MingW compilation issues
 #define APATHY_VERSION "1.0.2" // (2016/02/02): Fix ext() with dotless files; Fix m/c/adate() on invalid pathfiles; Handle proper Win32 stat() case
 #define APATHY_VERSION "1.0.1" // (2015/12/02): Add resize() function
 #define APATHY_VERSION "1.0.0" // (2015/11/20): Simplified API, moved vfs/ostream to libraries apart
@@ -44,6 +45,7 @@
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <set>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -214,14 +216,12 @@ namespace apathy {
     bool    md( const path &uri, size_t mode = default_path_mode );
 
     // Disk operations API
-    // move, copy, copy (recursive), remove, remove (recursive), listing, listing (recursive)
+    // move, copy, copy (recursive), remove, remove (recursive)
 
     bool   mv( const pathfile &uri, const pathfile &uri_dst );
     bool   cp( const pathfile &uri, const pathfile &uri_dst );
     bool   rm( const pathfile &uri );
     bool rmrf( const pathfile &uri );
-    bool   ls( std::vector<std::string> &list, const path &uri = "", const std::string &masks = "*" );
-    bool  lsr( std::vector<std::string> &list, const path &uri = "", const std::string &masks = "*" );
 
     // File patching API (will patch locked binaries too)
 
@@ -242,11 +242,31 @@ namespace apathy {
     path tmpdir();
     file tmpname();
 
+    // Native API
+    // - Puts normalized resource back to native format ('/'->'\\' on windows)
+    // - If spaces are found, add OS quotes as well ('\'', or '\"' on windows).
+
+    std::string native( const pathfile &uri );
+
+    // Globbing API
+    // - ls: file+dirs, lsf: files only, lsd: dirs only. 
+    // - Support wildcards for 1-depth listing ("*.txt"), and recursive listing ("**.png")
+    // - Support wildcard chaining ("**.txt;**.mp?;*.png;*.ico;")
+
+    std::vector<std::string> ls( const std::string &masks = "*" );
+    std::vector<std::string> lsf( const std::string &masks = "*" );
+    std::vector<std::string> lsd( const std::string &masks = "*" );
+
     // Handy aliases (for convenience)
 
     std::string read( const file &uri );
-    std::vector<std::string> ls( const path &uri = "", const std::string &masks = "*" );
-    std::vector<std::string> lsr( const path &uri = "", const std::string &masks = "*" );
+
+    // To deprecate:
+
+    bool  ls0( std::vector<std::string> &list, const path &uri = "", const std::string &masks = "*" );
+    bool lsr0( std::vector<std::string> &list, const path &uri = "", const std::string &masks = "*" );
+    std::vector<std::string> ls0( const path &uri = "", const std::string &masks = "*" );
+    std::vector<std::string> lsr0( const path &uri = "", const std::string &masks = "*" );
 
     // Error retrieval API
 
@@ -308,7 +328,7 @@ namespace apathy {
     // size in bytes
     inline size_t size( const pathfile &uri ) {
         if( uri.is_path() ) {
-            return ls(uri).size();
+            return ls0(uri).size();
         }
         if( uri.is_file() ) {
             struct stat info;
@@ -372,7 +392,7 @@ namespace apathy {
     inline bool is_empty( const pathfile &uri ) {
         if( exists(uri) ) {
             if( uri.is_path() ) {
-                return ls(uri).empty();
+                return ls0(uri).empty();
             }
             if( uri.is_file() ) {
                 return apathy::size(uri) == 0;
@@ -791,25 +811,92 @@ namespace apathy {
     }
 
     // directory listing
-    inline bool ls( std::vector<std::string> &list, const path &uri, const std::string &masks ) {
+    inline bool ls0( std::vector<std::string> &list, const path &uri, const std::string &masks ) {
         return glob( list, uri, wildcards(masks), false, false ) > 0;
     }
 
     // directory listing
-    inline std::vector<std::string> ls( const path &uri, const std::string &masks ) {
+    inline std::vector<std::string> ls0( const path &uri, const std::string &masks ) {
         std::vector<std::string> list;
-        return ls( list, uri, masks ) ? list : (list.clear(), list);
+        return ls0( list, uri, masks ) ? list : (list.clear(), list);
     }
 
     // directory listing (recursive)
-    inline bool lsr( std::vector<std::string> &list, const path &uri, const std::string &masks ) {
+    inline bool lsr0( std::vector<std::string> &list, const path &uri, const std::string &masks ) {
         return glob( list, uri, wildcards(masks),  true, false ) > 0;
     }
 
     // directory listing (recursive)
-    inline std::vector<std::string> lsr( const path &uri, const std::string &masks ) {
+    inline std::vector<std::string> lsr0( const path &uri, const std::string &masks ) {
         std::vector<std::string> list;
-        return lsr( list, uri, masks ) ? list : (list.clear(), list);
+        return lsr0( list, uri, masks ) ? list : (list.clear(), list);
+    }
+
+    // more globbing
+
+    template<bool is_file, bool is_path>
+    inline std::vector<std::string> glob( const std::vector<std::string> &pathroutes ) {
+        std::set<std::string> out;
+        for( auto &pr : pathroutes ) {
+            auto path = apathy::stem(pr);
+            auto name = apathy::name(pr);
+            bool recursive = pr.find("**") != std::string::npos;
+            auto uris = recursive ? apathy::lsr0(path, name) : apathy::ls0(path, name);
+            for( auto &uri : uris ) {
+                if( is_file && is_path ) {
+                    out.insert( uri );
+                } 
+                else if( is_file && apathy::is_file(uri) ) {
+                    out.insert( uri );
+                }
+                else if( is_path && apathy::is_path(uri) ) {
+                    out.insert( uri );
+                }
+            }
+        }        
+        return std::vector<std::string>( out.begin(), out.end() );
+    }
+
+    template<bool is_file, bool is_path>
+    inline std::vector<std::string> glob( const std::string &pathroute ) {
+        if( pathroute.find("*") == std::string::npos && pathroute.find("?") == std::string::npos ) {
+            return std::vector<std::string>( apathy::exists(pathroute) ? 1 : 0, pathroute );
+        }
+        return glob<is_file, is_path>( apathy::wildcards(pathroute) );
+    }
+
+    inline std::vector<std::string> ls( const std::string &pathroute ) {
+        return glob<1,1>( pathroute );
+    }
+
+    inline std::vector<std::string> lsf( const std::string &pathroute ) {
+        return glob<1,0>( pathroute );
+    }
+
+    inline std::vector<std::string> lsd( const std::string &pathroute ) {
+        std::set<std::string> set;
+        auto globbed = glob<0,1>( "**" );
+        auto wcs = apathy::wildcards(pathroute);
+        for( auto &it : globbed ) {
+            for( auto &wc : wcs ) {
+                if( match(it.c_str(), wc.c_str()) ) {
+                    set.insert( it );
+                    break;
+                }
+            }
+        }
+        return std::vector<std::string>( set.begin(), set.end() );
+    }
+
+    inline std::string native( const pathfile &uri ) {
+        bool has_spaces = uri.find(' ') != std::string::npos;
+#ifdef _WIN32
+        auto uri_ = uri;
+        for( auto &ch : uri_ ) if( ch == '/' ) ch = '\\';
+        return has_spaces ? std::string() + '"' + uri_ + '"' : std::string() +  uri_;
+#else
+        return has_spaces ? std::string() + "'" + uri + "'" : std::string() + uri;
+#endif
     }
 
     // file op
@@ -830,7 +917,7 @@ namespace apathy {
     inline bool rmrf( const pathfile &uri ) {
         bool ok = true;
         if( uri.is_path() ) {
-            std::vector<std::string> list( ls(uri) );
+            std::vector<std::string> list( ls0(uri) );
             std::vector<pathfile> subdirs( list.begin(), list.end() );
             typedef std::vector<pathfile>::const_iterator iter;
             for( iter it = subdirs.begin(), end = subdirs.end(); it != end; ++it ) {
@@ -1001,7 +1088,6 @@ namespace apathy {
     }
     // } utils
 }
-
 
 #ifdef APATHY_BUILD_TESTS
 
@@ -1265,24 +1351,42 @@ int main() {
     }
 
     suite( "test file/dir globbing" ) {
-        auto list1 = ls( "", "*.cc;*.hpp;*.md" );
+        auto list1 = ls0( "", "*.cc;*.hpp;*.md" );
         test( list1.size() > 0 );
-        auto list2 = ls( "./", "*.hpp;" );
+        auto list2 = ls0( "./", "*.hpp;" );
         test( list2.size() == 1 );
     }
 
     suite( "benchmark disk globbing" ) {
-        auto root = ls(), subs = ls();
+        auto root = ls0(), subs = ls0();
         benchmark(
-            root = ls("./");
+            root = ls0("./");
         );
         benchmark(
-            subs = lsr("./");
+            subs = lsr0("./");
         );
         test( !root.empty() );
         test( !subs.empty() );
         test( subs.size() > root.size() );
         std::cout << subs.size() << " files found" << std::endl;
+    }
+
+    suite( "more file globbing" ) {
+        auto files = lsf("**.*pp;*.c*");
+        //for( auto &entry : files ) std::cout << entry << std::endl;
+        test( !files.empty() );
+        auto dirs = lsd("**/d**/");
+        test( !dirs.empty() );
+        //for( auto &entry : dirs ) std::cout << entry << std::endl;
+    }
+
+    suite( "native" ) {
+        auto os = native("/windows/media/the media.fnt");
+#ifdef _WIN32
+        test( os == "\"\\windows\\media\\the media.fnt\"");
+#else
+        test( os == "\'/windows/media/the media.fnt\'" );
+#endif
     }
 }
 
@@ -1290,3 +1394,4 @@ int main() {
 
 #undef $apathy32
 #undef $apathyXX
+

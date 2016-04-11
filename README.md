@@ -92,8 +92,6 @@ namespace apathy {
     bool   cp( pathfile uri, pathfile uri_dst );
     bool   rm( pathfile uri );
     bool rmrf( pathfile uri );
-    bool   ls( vector<string> &list, path uri="", string masks="*" );
-    bool  lsr( vector<string> &list, path uri="", string masks="*" );
 
     // File patching API (will patch locked binaries too)
 
@@ -114,11 +112,19 @@ namespace apathy {
     path tmpdir();
     file tmpname();
 
+    // Native API
+
+    string native( pathfile uri );
+
+    // Globbing API
+
+    vector<string>   ls( string masks="*" );
+    vector<string>  lsf( string masks="*" );
+    vector<string>  lsd( string masks="*" );
+
     // Handy aliases (for convenience)
 
     string read( file uri );
-    vector<string> ls( path uri="", string masks="*" );
-    vector<string> lsr( path uri="", string masks="*" );
 
     // Error retrieval API
 
@@ -135,6 +141,7 @@ namespace apathy {
 - [Dirent](http://softagalleria.net/dirent.php) by Toni Ronkko, MIT licensed.
 
 ### Changelog
+- v1.0.4 (2016/04/11): Easier ls(), lsd(), lsf() API; allow premake4 style wildcards (ie, lsd("*t;**z") - glob all *t dirs, and *z dirs with subdirs )
 - v1.0.3 (2016/03/25): Fix MingW compilation issues
 - v1.0.2 (2016/02/02): Fix ext() with dotless files
 - v1.0.2 (2016/02/02): Fix m/c/adate() on invalid pathfiles
