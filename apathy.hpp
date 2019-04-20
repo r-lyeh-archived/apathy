@@ -21,7 +21,8 @@
 
 #pragma once
 
-#define APATHY_VERSION "1.0.4" /* (2016/04/11): Easier ls(), lsd(), lsf() API; allow premake4 style wildcards (ie, lsd("*t;**z") - glob all *t dirs, and *z dirs with subdirs )
+#define APATHY_VERSION "1.0.5" /* (2019/04/20): Fixed compilation on MacOS; replaced mktmp() with mkstmp(); tmpname() now creates the file
+#define APATHY_VERSION "1.0.4" // (2016/04/11): Easier ls(), lsd(), lsf() API; allow premake4 style wildcards (ie, lsd("*t;**z") - glob all *t dirs, and *z dirs with subdirs )
 #define APATHY_VERSION "1.0.3" // (2016/03/25): Fix MingW compilation issues
 #define APATHY_VERSION "1.0.2" // (2016/02/02): Fix ext() with dotless files; Fix m/c/adate() on invalid pathfiles; Handle proper Win32 stat() case
 #define APATHY_VERSION "1.0.1" // (2015/12/02): Add resize() function
@@ -2000,7 +2001,7 @@ namespace apathy {
         struct testdir {
             static bool test_tempdir( const std::string &temp_dir ) {
                 file fp( temp_dir + "/tst-tmp.XXXXXX" );
-                if( mktemp((char *)fp.c_str()) >= 0 ) {
+                if( mkstemp((char *)fp.c_str()) != -1 ) {
                     if( overwrite(fp, "!") ) {
                         return true;
                     }
@@ -2036,11 +2037,11 @@ namespace apathy {
         return st;
     }
 
-    // returns temp file name (does not create file)
+    // returns temp file name (creates the file)
     inline file tmpname() {
         $apathyXX(
             file fp( "tst-tmp.XXXXXX" );
-            if( mktemp((char *)fp.c_str()) >= 0 ) {
+            if( mkstemp((char *)fp.c_str()) != 1 ) {
             }
             return name( fp );
         )
@@ -2316,13 +2317,13 @@ int main() {
         test( tmpname().back() != '/' );
         std::string tmp1 = tmpname();
         test( tmp1.size() > 0 );
-        test( !exists(tmp1) );
+        test( exists(tmp1) );
         test( overwrite(tmp1, "hello") );
         test( exists(tmp1) );
 
         std::string tmp2 = tmpname();
         test( tmp2.size() > 0 );
-        test( !exists(tmp2) );
+        test( exists(tmp2) );
         test( overwrite(tmp2, "hello") );
         test( exists(tmp2) );
 
@@ -2402,4 +2403,3 @@ int main() {
 
 #undef $apathy32
 #undef $apathyXX
-
