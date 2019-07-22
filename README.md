@@ -62,7 +62,7 @@ namespace apathy {
     bool  is_link( pathfile uri );
 
     size_t   size( pathfile uri );
-    bool    empty( pathfile uri );
+    bool is_empty( pathfile uri );
 
     int       gid( pathfile uri );
     int       uid( pathfile uri );
@@ -79,7 +79,7 @@ namespace apathy {
 
     // Folder API
 
-    bool pushd( path uri );
+    bool pushd();
     bool  popd();
     path   cwd();
     bool    cd( path uri );
@@ -141,6 +141,7 @@ namespace apathy {
 - [Dirent](http://softagalleria.net/dirent.php) by Toni Ronkko, MIT licensed.
 
 ### Changelog
+- v1.0.5 (2019/04/20): Fixed compilation on MacOS; replaced mktmp() with mkstmp(); tmpname() now creates the file; suppressed C4996 warnings on Visual Studio; fixed API in docs
 - v1.0.4 (2016/04/11): Easier ls(), lsd(), lsf() API; allow premake4 style wildcards (ie, lsd("*t;**z") - glob all *t dirs, and *z dirs with subdirs )
 - v1.0.3 (2016/03/25): Fix MingW compilation issues
 - v1.0.2 (2016/02/02): Fix ext() with dotless files
