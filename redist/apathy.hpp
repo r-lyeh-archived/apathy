@@ -21,7 +21,8 @@
 
 #pragma once
 
-#define APATHY_VERSION "1.0.4" /* (2016/04/11): Easier ls(), lsd(), lsf() API; allow premake4 style wildcards (ie, lsd("*t;**z") - glob all *t dirs, and *z dirs with subdirs )
+#define APATHY_VERSION "1.0.5" /* (2019/04/20): Fixed compilation on MacOS; replaced mktmp() with mkstmp(); suppressed C4996 warnings on Visual Studio; fixed API in docs
+#define APATHY_VERSION "1.0.4" // (2016/04/11): Easier ls(), lsd(), lsf() API; allow premake4 style wildcards (ie, lsd("*t;**z") - glob all *t dirs, and *z dirs with subdirs )
 #define APATHY_VERSION "1.0.3" // (2016/03/25): Fix MingW compilation issues
 #define APATHY_VERSION "1.0.2" // (2016/02/02): Fix ext() with dotless files; Fix m/c/adate() on invalid pathfiles; Handle proper Win32 stat() case
 #define APATHY_VERSION "1.0.1" // (2015/12/02): Add resize() function
@@ -56,6 +57,11 @@
 #else
 #   define  $apathy32(...)
 #   define  $apathyXX(...) __VA_ARGS__
+#endif
+
+#ifdef _WIN32
+    #pragma warning(push)
+    #pragma warning(disable: 4996)
 #endif
 
 namespace apathy {
@@ -191,7 +197,7 @@ namespace apathy {
     bool  is_link( const pathfile &uri );
 
     size_t   size( const pathfile &uri ); // num bytes (file) or number of items(path)
-    bool    empty( const pathfile &uri ); // true if null (file) or no items (path)
+    bool is_empty( const pathfile &uri ); // true if null (file) or no items (path)
 
     int       gid( const pathfile &uri ); // group id
     int       uid( const pathfile &uri ); // user id
@@ -208,7 +214,7 @@ namespace apathy {
 
     // Folder API
 
-    bool pushd( const path &uri );
+    bool pushd();
     bool  popd();
     path   cwd();
     bool    cd( const path &uri );
@@ -249,7 +255,7 @@ namespace apathy {
     std::string native( const pathfile &uri );
 
     // Globbing API
-    // - ls: file+dirs, lsf: files only, lsd: dirs only. 
+    // - ls: file+dirs, lsf: files only, lsd: dirs only.
     // - Support wildcards for 1-depth listing ("*.txt"), and recursive listing ("**.png")
     // - Support wildcard chaining ("**.txt;**.mp?;*.png;*.ico;")
 
@@ -845,7 +851,7 @@ namespace apathy {
             for( auto &uri : uris ) {
                 if( is_file && is_path ) {
                     out.insert( uri );
-                } 
+                }
                 else if( is_file && apathy::is_file(uri) ) {
                     out.insert( uri );
                 }
@@ -853,7 +859,7 @@ namespace apathy {
                     out.insert( uri );
                 }
             }
-        }        
+        }
         return std::vector<std::string>( out.begin(), out.end() );
     }
 
@@ -893,7 +899,7 @@ namespace apathy {
 #ifdef _WIN32
         auto uri_ = uri;
         for( auto &ch : uri_ ) if( ch == '/' ) ch = '\\';
-        return has_spaces ? std::string() + '"' + uri_ + '"' : std::string() +  uri_;
+        return has_spaces ? std::string() + '"' + uri_ + '"' : std::string() + uri_;
 #else
         return has_spaces ? std::string() + "'" + uri + "'" : std::string() + uri;
 #endif
@@ -992,10 +998,8 @@ namespace apathy {
         struct testdir {
             static bool test_tempdir( const std::string &temp_dir ) {
                 file fp( temp_dir + "/tst-tmp.XXXXXX" );
-                if( mktemp((char *)fp.c_str()) >= 0 ) {
-                    if( overwrite(fp, "!") ) {
-                        return true;
-                    }
+                if( overwrite(fp, "!") ) {
+                    return true;
                 }
                 return false;
             }
@@ -1028,16 +1032,18 @@ namespace apathy {
         return st;
     }
 
-    // returns temp file name (does not create file)
+    // returns temp file name (does not create the file)
     inline file tmpname() {
         $apathyXX(
-            file fp( "tst-tmp.XXXXXX" );
-            if( mktemp((char *)fp.c_str()) >= 0 ) {
+            file fp = name( tmpdir() + "/tst-tmp.XXXXXX" );
+            if( mkstemp(&fp[0]) != -1 && rm(fp) ) {
+                return fp;
             }
-            return name( fp );
+            return file();
         )
         $apathy32(
-            return name( normalize( std::tmpnam(0) ) );
+            file fp = name( normalize( std::tmpnam(0) ) );
+            return fp;
         )
     }
 
@@ -1392,6 +1398,9 @@ int main() {
 
 #endif
 
+#ifdef _WIN32
+    #pragma warning(pop)
+#endif
+
 #undef $apathy32
 #undef $apathyXX
-
