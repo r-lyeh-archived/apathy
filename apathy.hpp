@@ -21,7 +21,8 @@
 
 #pragma once
 
-#define APATHY_VERSION "1.0.4" /* (2016/04/11): Easier ls(), lsd(), lsf() API; allow premake4 style wildcards (ie, lsd("*t;**z") - glob all *t dirs, and *z dirs with subdirs )
+#define APATHY_VERSION "1.0.5" /* (2019/04/20): Fixed compilation on MacOS; replaced mktmp() with mkstmp(); tmpname() now creates the file; suppressed C4996 warnings on Visual Studio; fixed API in docs
+#define APATHY_VERSION "1.0.4" // (2016/04/11): Easier ls(), lsd(), lsf() API; allow premake4 style wildcards (ie, lsd("*t;**z") - glob all *t dirs, and *z dirs with subdirs )
 #define APATHY_VERSION "1.0.3" // (2016/03/25): Fix MingW compilation issues
 #define APATHY_VERSION "1.0.2" // (2016/02/02): Fix ext() with dotless files; Fix m/c/adate() on invalid pathfiles; Handle proper Win32 stat() case
 #define APATHY_VERSION "1.0.1" // (2015/12/02): Add resize() function
@@ -56,6 +57,11 @@
 #else
 #   define  $apathy32(...)
 #   define  $apathyXX(...) __VA_ARGS__
+#endif
+
+#ifdef _WIN32
+    #pragma warning(push)
+    #pragma warning(disable: 4996)
 #endif
 
 namespace apathy {
@@ -191,7 +197,7 @@ namespace apathy {
     bool  is_link( const pathfile &uri );
 
     size_t   size( const pathfile &uri ); // num bytes (file) or number of items(path)
-    bool    empty( const pathfile &uri ); // true if null (file) or no items (path)
+    bool is_empty( const pathfile &uri ); // true if null (file) or no items (path)
 
     int       gid( const pathfile &uri ); // group id
     int       uid( const pathfile &uri ); // user id
@@ -208,7 +214,7 @@ namespace apathy {
 
     // Folder API
 
-    bool pushd( const path &uri );
+    bool pushd();
     bool  popd();
     path   cwd();
     bool    cd( const path &uri );
@@ -1995,12 +2001,115 @@ namespace apathy {
         return success;
     }
 
+#ifdef _WIN32
+	/* mkstemp extracted from libc/sysdeps/posix/tempname.c.  Copyright
+	   (C) 1991-1999, 2000, 2001, 2006 Free Software Foundation, Inc.
+
+	   The GNU C Library is free software; you can redistribute it and/or
+	   modify it under the terms of the GNU Lesser General Public
+	   License as published by the Free Software Foundation; either
+	   version 2.1 of the License, or (at your option) any later version.  */
+
+	static const char letters[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+	/* Generate a temporary file name based on TMPL.  TMPL must match the
+	   rules for mk[s]temp (i.e. end in "XXXXXX").  The name constructed
+	   does not exist at the time of the call to mkstemp.  TMPL is
+	   overwritten with the result.  */
+	inline int mkstemp(char* tmpl)
+	{
+		int len;
+		char* XXXXXX;
+		static unsigned long long value;
+		unsigned long long random_time_bits;
+		unsigned int count;
+		int fd = -1;
+		int save_errno = errno;
+
+		/* A lower bound on the number of temporary files to attempt to
+		   generate.  The maximum total number of temporary file names that
+		   can exist for a given template is 62**6.  It should never be
+		   necessary to try all these combinations.  Instead if a reasonable
+		   number of names is tried (we define reasonable as 62**3) fail to
+		   give the system administrator the chance to remove the problems.  */
+#define ATTEMPTS_MIN (62 * 62 * 62)
+
+		   /* The number of times to attempt to generate a temporary file.  To
+			  conform to POSIX, this must be no smaller than TMP_MAX.  */
+#if ATTEMPTS_MIN < TMP_MAX
+		unsigned int attempts = TMP_MAX;
+#else
+		unsigned int attempts = ATTEMPTS_MIN;
+#endif
+
+		len = strlen(tmpl);
+		if (len < 6 || strcmp(&tmpl[len - 6], "XXXXXX"))
+		{
+			errno = EINVAL;
+			return -1;
+		}
+
+		/* This is where the Xs start.  */
+		XXXXXX = &tmpl[len - 6];
+
+		/* Get some more or less random data.  */
+		{
+			SYSTEMTIME      stNow;
+			FILETIME ftNow;
+
+			// get system time
+			GetSystemTime(&stNow);
+			stNow.wMilliseconds = 500;
+			if (!SystemTimeToFileTime(&stNow, &ftNow))
+			{
+				errno = -1;
+				return -1;
+			}
+
+			random_time_bits = (((unsigned long long)ftNow.dwHighDateTime << 32)
+				| (unsigned long long)ftNow.dwLowDateTime);
+		}
+		value += random_time_bits ^ (unsigned long long)GetCurrentThreadId();
+
+		for (count = 0; count < attempts; value += 7777, ++count)
+		{
+			unsigned long long v = value;
+
+			/* Fill in the random bits.  */
+			XXXXXX[0] = letters[v % 62];
+			v /= 62;
+			XXXXXX[1] = letters[v % 62];
+			v /= 62;
+			XXXXXX[2] = letters[v % 62];
+			v /= 62;
+			XXXXXX[3] = letters[v % 62];
+			v /= 62;
+			XXXXXX[4] = letters[v % 62];
+			v /= 62;
+			XXXXXX[5] = letters[v % 62];
+
+			fd = open(tmpl, O_RDWR | O_CREAT | O_EXCL, _S_IREAD | _S_IWRITE);
+			if (fd >= 0)
+			{
+				errno = save_errno;
+				return fd;
+			}
+			else if (errno != EEXIST)
+				return -1;
+		}
+
+		/* We got out of the loop because we ran out of combinations to try.  */
+		errno = EEXIST;
+		return -1;
+	}
+#endif
+
     // returns temp dir name (does not create directory)
     inline path tmpdir() {
         struct testdir {
             static bool test_tempdir( const std::string &temp_dir ) {
                 file fp( temp_dir + "/tst-tmp.XXXXXX" );
-                if( mktemp((char *)fp.c_str()) >= 0 ) {
+                if( mkstemp((char *)fp.c_str()) != -1 ) {
                     if( overwrite(fp, "!") ) {
                         return true;
                     }
@@ -2036,11 +2145,11 @@ namespace apathy {
         return st;
     }
 
-    // returns temp file name (does not create file)
+    // returns temp file name (creates the file)
     inline file tmpname() {
         $apathyXX(
             file fp( "tst-tmp.XXXXXX" );
-            if( mktemp((char *)fp.c_str()) >= 0 ) {
+            if( mkstemp((char *)fp.c_str()) != 1 ) {
             }
             return name( fp );
         )
@@ -2316,13 +2425,13 @@ int main() {
         test( tmpname().back() != '/' );
         std::string tmp1 = tmpname();
         test( tmp1.size() > 0 );
-        test( !exists(tmp1) );
+        test( exists(tmp1) );
         test( overwrite(tmp1, "hello") );
         test( exists(tmp1) );
 
         std::string tmp2 = tmpname();
         test( tmp2.size() > 0 );
-        test( !exists(tmp2) );
+        test( exists(tmp2) );
         test( overwrite(tmp2, "hello") );
         test( exists(tmp2) );
 
@@ -2400,6 +2509,9 @@ int main() {
 
 #endif
 
+#ifdef _WIN32
+    #pragma warning(pop)
+#endif
+
 #undef $apathy32
 #undef $apathyXX
-
